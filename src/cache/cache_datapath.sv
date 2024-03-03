@@ -14,7 +14,7 @@ module cache_datapath #(
     
     input logic [s_mask:0] memAddr,
     input logic [s_line:0] dataIn,
-    input logic [s_mask:0] dataOut,
+    output logic [s_mask:0] dataOut,
     
     input logic [1:0] dataWriteEn, //data write enable for each way
     input logic [1:0] tagWriteEn, //tag write enable for each way
@@ -38,14 +38,13 @@ logic [2:0] memIndex = memAddr[7:5];
 logic [4:0] memOffset = memAddr[4:0];
 
 //data array associated wires
-logic dataread_A, dataread_B; //seperate data reads allow to act as the 2:1 mux (hit controls read)
-logic write_en_A [s_mask:0]; //want to be able to be byte writable from the CPU, handled in data_array
-logic write_en_B [s_mask:0];
-logic [s_line:0] dataout_A;
-logic [s_line:0] dataout_B;
+logic writeEnDataArray_A [s_mask:0]; //want to be able to be byte writable from the CPU, handled in data_array
+logic writeEnDataArray_A [s_mask:0];
+logic [s_line:0] dataArrayOut_A;
+logic [s_line:0] dataArrayOut_B;
 
 //tag array associated wires
-logic tagload_A, tagload_B;
+logic tagLoad_A, tagLoad_B;
 logic [23:0] tagArrayOut_A, tageArrayOut_B;
 
 //other metadata wires
@@ -56,7 +55,7 @@ array #(.s_index(s_index), .s_width(24)) TagArray_A (
     .clk(clk),
     .rst(rst),
     .read(1'b1),
-    .load(tagload_A),
+    .load(tagLoad_A),
     .rindex(memIndex),
     .windex(memIndex),
     .datain(memTag),
@@ -66,35 +65,48 @@ array #(.s_index(s_index), .s_width(24)) TagArray_B (
     .clk(clk),
     .rst(rst),
     .read(1'b1),
-    .load(tagload_B),
+    .load(tagLoad_B),
     .rindex(memIndex),
     .windex(memIndex),
     .datain(memTag),
     .dataout(tagArrayOut_B)
   ); 
   
-//todo: add hit tag==tag logic
-  
+//seperate data reads allow to act as the 2:1 mux (hit controls read)
+always_comb begin
+    logic dataRead_A = (tagArrayOut_A == memTag) ? 1'b1 : 1'b0;
+    logic dataRead_B = (tagArrayOut_B == memTag) ? 1'b1 : 1'b0;
+end
+
+//todo: add/fix write code
+
 data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayA (
     .clk(clk),
     .rst(rst),
-    .read(dataread),
-    .write_en(write_en_A),
+    .read(dataRead),
+    .write_en(writeEn_A),
     .rindex(memIndex),
     .windex(memIndex),
     .datain(dataIn),
-    .dataout(dataout_A)
+    .dataout(dataArrayOut_A)
   );
 data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayB (
     .clk(clk),
     .rst(rst),
-    .read(dataread),
-    .write_en(write_en_B),
+    .read(dataRead),
+    .write_en(writeEn_B),
     .rindex(memIndex),
     .windex(memIndex),
     .datain(dataIn),
-    .dataout(dataout_B)
+    .dataout(dataArrayOut_B)
   );
+
+//mux dataArrayOut values to output 32b
+always_comb begin
+    logic [s_line:0] dataMuxInput = (dataRead_A == 1'b1) ? dataArrayOut_A : dataArrayOut_B;
+    logic [s_mask:0] dataMuxOutput = dataMuxInput[0:0];
+    assign dataOut = dataMuxOutput;
+end
 
 array #(.s_index(s_index), .s_width(1)) validArray_A (
     .clk(clk),
