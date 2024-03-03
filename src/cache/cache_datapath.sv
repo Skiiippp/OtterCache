@@ -12,9 +12,9 @@ module cache_datapath #(
     input logic clk,
     input logic rst,
     
-    input logic [31:0] memAddr,
-    input logic [255:0] dataIn,
-    input logic [31:0] dataOut,
+    input logic [s_mask:0] memAddr,
+    input logic [s_line:0] dataIn,
+    input logic [s_mask:0] dataOut,
     
     input logic [1:0] dataWriteEn, //data write enable for each way
     input logic [1:0] tagWriteEn, //tag write enable for each way
@@ -30,122 +30,128 @@ module cache_datapath #(
     output logic LRUout //gets the bit of the LRU array at the index; 0=LRU way A, 0=LRU way B
 );
 
-//todo: add needed reset logic
+///////////////////////////// regs and wires /////////////////////////////////
 
 //split the incoming mem address into its respective parts
 logic [23:0] memTag = memAddr[31:8];
 logic [2:0] memIndex = memAddr[7:5];
 logic [4:0] memOffset = memAddr[4:0];
 
-logic [2:0] rindex; //read index
-logic [2:0] windex; //write index
+//data array associated wires
+logic dataread_A, dataread_B; //seperate data reads allow to act as the 2:1 mux (hit controls read)
+logic write_en_A [s_mask:0]; //want to be able to be byte writable from the CPU, handled in data_array
+logic write_en_B [s_mask:0];
+logic [s_line:0] dataout_A;
+logic [s_line:0] dataout_B;
 
-//Data array stuff
-logic dataread;
-logic write_en_A [31:0]; //32 bytes long and we want to be able to be byte addressable to the CPU
-logic write_en_B [31:0];
-logic [255:0] datain;
-logic [255:0] dataout_A;
-logic [255:0] dataout_B;
+//tag array associated wires
+logic tagload_A, tagload_B;
+logic [23:0] tagArrayOut_A, tageArrayOut_B;
 
-data_array #(.s_offset(5), .s_index(3)) DataArrayA (
+//other metadata wires
+logic validArrayOut_A, validArrayOut_B;
+logic dirtyArrayOut_A, dirtyArrayOut_B;
+
+array #(.s_index(s_index), .s_width(24)) TagArray_A (
+    .clk(clk),
+    .rst(rst),
+    .read(1'b1),
+    .load(tagload_A),
+    .rindex(memIndex),
+    .windex(memIndex),
+    .datain(memTag),
+    .dataout(tagArrayOut_A)
+  ); 
+array #(.s_index(s_index), .s_width(24)) TagArray_B (
+    .clk(clk),
+    .rst(rst),
+    .read(1'b1),
+    .load(tagload_B),
+    .rindex(memIndex),
+    .windex(memIndex),
+    .datain(memTag),
+    .dataout(tagArrayOut_B)
+  ); 
+  
+//todo: add hit tag==tag logic
+  
+data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayA (
     .clk(clk),
     .rst(rst),
     .read(dataread),
     .write_en(write_en_A),
-    .rindex(rindex),
-    .windex(windex),
-    .datain(datain),
+    .rindex(memIndex),
+    .windex(memIndex),
+    .datain(dataIn),
     .dataout(dataout_A)
   );
-data_array #(.s_offset(5), .s_index(3)) DataArrayB (
+data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayB (
     .clk(clk),
     .rst(rst),
     .read(dataread),
     .write_en(write_en_B),
-    .rindex(rindex),
-    .windex(windex),
-    .datain(datain),
+    .rindex(memIndex),
+    .windex(memIndex),
+    .datain(dataIn),
     .dataout(dataout_B)
   );
 
-//tag array stuff
-logic tagread;
-logic tagload_A, tagload_B;
-
-
-array #(.s_index(3), .s_width(24)) TagArray_A (
+array #(.s_index(s_index), .s_width(1)) validArray_A (
     .clk(clk),
     .rst(rst),
-    .read(tagread),
-    .load(tagload_A),
-    .rindex(rindex),
-    .windex(windex),
-    .datain(datain),
-    .dataout(dataout)
+    .read(1'b1),
+    .load(writeValid[0]),
+    .rindex(memIndex),
+    .windex(memIndex),
+    .datain(setValid[0]),
+    .dataout(isValid[0])
   ); 
-array #(.s_index(3), .s_width(24)) TagArray_B (
+array #(.s_index(s_index), .s_width(1)) validArray_B (
     .clk(clk),
     .rst(rst),
-    .read(tagread),
-    .load(tagload_B),
-    .rindex(rindex),
-    .windex(windex),
-    .datain(datain),
-    .dataout(dataout)
+    .read(1'b1),
+    .load(writeValid[1]),
+    .rindex(memIndex),
+    .windex(memIndex),
+    .datain(setValid[1]),
+    .dataout(isValid[1])
   ); 
   
-array #(.s_index(3), .s_width(1)) validArray_A (
+array #(.s_index(s_index), .s_width(1)) dirtyArray_A (
     .clk(clk),
     .rst(rst),
-    .read(read),
-    .load(load),
-    .rindex(rindex),
-    .windex(windex),
-    .datain(datain),
-    .dataout(dataout)
+    .read(1'b1),
+    .load(writeDirty[0]),
+    .rindex(memIndex),
+    .windex(memIndex),
+    .datain(setDirty[0]),
+    .dataout(isDirty[0])
   ); 
-array #(.s_index(3), .s_width(1)) validArray_B (
+array #(.s_index(s_index), .s_width(1)) dirtyArray_B (
     .clk(clk),
     .rst(rst),
-    .read(read),
-    .load(load),
-    .rindex(rindex),
-    .windex(windex),
-    .datain(datain),
-    .dataout(dataout)
-  ); 
-  
-array #(.s_index(3), .s_width(1)) dirtyArray_A (
-    .clk(clk),
-    .rst(rst),
-    .read(read),
-    .load(load),
-    .rindex(rindex),
-    .windex(windex),
-    .datain(datain),
-    .dataout(dataout)
-  ); 
-array #(.s_index(3), .s_width(1)) dirtyArray_B (
-    .clk(clk),
-    .rst(rst),
-    .read(read),
-    .load(load),
-    .rindex(rindex),
-    .windex(windex),
-    .datain(datain),
-    .dataout(dataout)
+    .read(1'b1),
+    .load(writeDirty[1]),
+    .rindex(memIndex),
+    .windex(memIndex),
+    .datain(setDirty[1]),
+    .dataout(isDirty[1])
   );
-  
-array #(.s_index(3), .s_width(1)) LRUArray (
+
+
+logic LRU_load, LRU_datain;
+
+//LRU code here
+
+array #(.s_index(s_index), .s_width(1)) LRUArray (
     .clk(clk),
     .rst(rst),
-    .read(read),
-    .load(load),
-    .rindex(rindex),
-    .windex(windex),
-    .datain(datain),
-    .dataout(dataout)
+    .read(1'b1),
+    .load(LRU_load),
+    .rindex(memIndex),
+    .windex(memIndex),
+    .datain(LRU_datain),
+    .dataout(LRUout)
   );
 
 endmodule : cache_datapath
