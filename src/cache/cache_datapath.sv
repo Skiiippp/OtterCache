@@ -14,8 +14,8 @@ module cache_datapath #(
     
     //cpu io
     input logic [s_mask:0] cpu_memAddr,
-    input logic [3:0] cpu_byte_en,
-    input logic [s_line:0] cpu_dataIn,
+    input logic [3:0] cpu_byteEn,
+    input logic [s_mask:0] cpu_dataIn,
     output logic [s_mask:0] cpu_dataOut,
     
     //cacheline adapter io
@@ -27,7 +27,7 @@ module cache_datapath #(
     input logic load_data_B,
     input logic load_tag_A,
     input logic load_tag_B,
-    input logic dataInSelect, //select CPU or mem data into data array
+    input logic dataInSelect, //select CPU (0) or mem data (1) into data array
     input logic [1:0] setValid, //valid bit 1/0 to write each array to
     input logic [1:0] writeValid, //valid bit write enable for each array
     input logic [1:0] setDirty,
@@ -44,9 +44,9 @@ module cache_datapath #(
 ///////////////////////////// regs and wires /////////////////////////////////
 
 //split the incoming mem address into its respective parts
-logic [23:0] memTag = memAddr[31:8];
-logic [2:0] memIndex = memAddr[7:5];
-logic [4:0] memOffset = memAddr[4:0];
+logic [23:0] memTag = cpu_memAddr[31:8];
+logic [2:0] memIndex = cpu_memAddr[7:5];
+logic [4:0] memOffset = cpu_memAddr[4:0];
 
 //data array associated wires
 logic writeEnDataArray_A [s_mask:0]; //want to be able to be byte writable from the CPU, handled in data_array
@@ -62,11 +62,13 @@ logic [23:0] tagArrayOut_A, tageArrayOut_B;
 logic validArrayOut_A, validArrayOut_B;
 logic dirtyArrayOut_A, dirtyArrayOut_B;
 
+///////////////////////////// comb/datapaths /////////////////////////////////
+
 array #(.s_index(s_index), .s_width(24)) TagArray_A (
     .clk(clk),
     .rst(rst),
     .read(1'b1),
-    .load(tagLoad_A),
+    .load(load_tag_A),
     .rindex(memIndex),
     .windex(memIndex),
     .datain(memTag),
@@ -76,7 +78,7 @@ array #(.s_index(s_index), .s_width(24)) TagArray_B (
     .clk(clk),
     .rst(rst),
     .read(1'b1),
-    .load(tagLoad_B),
+    .load(load_tag_A),
     .rindex(memIndex),
     .windex(memIndex),
     .datain(memTag),
@@ -86,35 +88,43 @@ array #(.s_index(s_index), .s_width(24)) TagArray_B (
 //seperate data reads allow to act as the 2:1 mux (hit controls read)
 logic dataHit_A = (tagArrayOut_A == memTag) ? 1'b1 : 1'b0;
 logic dataHit_B = (tagArrayOut_B == memTag) ? 1'b1 : 1'b0;
+assign isHit = (dataHit_A == 1'b1 || dataHit_B == 1'b1) ? 1'b1 : 1'b0;
 
+//data input mux to data arrays
+logic [s_line:0] dataArrayDataIn = (dataInSelect == 1'b1) ? ca_dataOut : cpu_dataOut;
 
-//todo: add/fix write code
+//data byte write logic. Shift 4 byte enable bits by 4*offset amount
+logic [s_mask:0] dataWriteEn = cpu_byteEn << (4*memOffset);
+logic [s_mask:0] dataWriteEn_A = (load_data_A == 1'b1) ? dataWriteEn : 32'b0;
+logic [s_mask:0] dataWriteEn_B = (load_data_B == 1'b1) ? dataWriteEn : 32'b0;
 
 data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayA (
     .clk(clk),
     .rst(rst),
     .read(dataHit_A),
-    .write_en(writeEn_A),
+    .write_en(dataWriteEn_A),
     .rindex(memIndex),
     .windex(memIndex),
-    .datain(dataIn),
+    .datain(dataArrayDataIn),
     .dataout(dataArrayOut_A)
   );
 data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayB (
     .clk(clk),
     .rst(rst),
     .read(dataHit_B),
-    .write_en(writeEn_B),
+    .write_en(dataWriteEn_B),
     .rindex(memIndex),
     .windex(memIndex),
-    .datain(dataIn),
+    .datain(dataArrayDataIn),
     .dataout(dataArrayOut_B)
   );
 
-//mux dataArrayOut values to output 32b
+//data output mux
 logic [s_line:0] dataMuxInput = (dataHit_A == 1'b1) ? dataArrayOut_A : dataArrayOut_B;
-logic [s_mask:0] dataMuxOutput = dataMuxInput[0:0];
-assign dataOut = dataMuxOutput;
+assign ca_dataIn = dataMuxInput;
+logic [s_mask:0] preMaskedDataMux = dataMuxInput >> (s_mask*memOffset); //shift by 32*offset, mask for the first 32 bits
+logic [s_mask:0] dataMuxOutput = preMaskedDataMux[s_mask:0];
+assign cpu_dataIn = dataMuxOutput;
 
 array #(.s_index(s_index), .s_width(1)) validArray_A (
     .clk(clk),
