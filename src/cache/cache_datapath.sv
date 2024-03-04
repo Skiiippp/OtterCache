@@ -12,12 +12,22 @@ module cache_datapath #(
     input logic clk,
     input logic rst,
     
-    input logic [s_mask:0] memAddr,
-    input logic [s_line:0] dataIn,
-    output logic [s_mask:0] dataOut,
+    //cpu io
+    input logic [s_mask:0] cpu_memAddr,
+    input logic [3:0] cpu_byte_en,
+    input logic [s_line:0] cpu_dataIn,
+    output logic [s_mask:0] cpu_dataOut,
     
-    input logic [1:0] dataWriteEn, //data write enable for each way
-    input logic [1:0] tagWriteEn, //tag write enable for each way
+    //cacheline adapter io
+    input logic [s_line:0] ca_dataIn,
+    input logic [s_line:0] ca_dataOut,
+    
+    //fsm io
+    input logic load_data_A,
+    input logic load_data_B,
+    input logic load_tag_A,
+    input logic load_tag_B,
+    input logic dataInSelect, //select CPU or mem data into data array
     input logic [1:0] setValid, //valid bit 1/0 to write each array to
     input logic [1:0] writeValid, //valid bit write enable for each array
     input logic [1:0] setDirty,
@@ -27,7 +37,8 @@ module cache_datapath #(
     output logic [1:0] isValid, //1==valid, 0==nonvalid
     output logic [1:0] isDirty, //1==dirty, 0==clean
     
-    output logic LRUout //gets the bit of the LRU array at the index; 0=LRU way A, 0=LRU way B
+    input logic LRULoad, //update LRU table, value is auto-generated in the datapath
+    output logic LRUOut //gets the bit of the LRU array at the index; 0=LRU way A, 0=LRU way B
 );
 
 ///////////////////////////// regs and wires /////////////////////////////////
@@ -73,17 +84,16 @@ array #(.s_index(s_index), .s_width(24)) TagArray_B (
   ); 
   
 //seperate data reads allow to act as the 2:1 mux (hit controls read)
-always_comb begin
-    logic dataRead_A = (tagArrayOut_A == memTag) ? 1'b1 : 1'b0;
-    logic dataRead_B = (tagArrayOut_B == memTag) ? 1'b1 : 1'b0;
-end
+logic dataHit_A = (tagArrayOut_A == memTag) ? 1'b1 : 1'b0;
+logic dataHit_B = (tagArrayOut_B == memTag) ? 1'b1 : 1'b0;
+
 
 //todo: add/fix write code
 
 data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayA (
     .clk(clk),
     .rst(rst),
-    .read(dataRead),
+    .read(dataHit_A),
     .write_en(writeEn_A),
     .rindex(memIndex),
     .windex(memIndex),
@@ -93,7 +103,7 @@ data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayA (
 data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayB (
     .clk(clk),
     .rst(rst),
-    .read(dataRead),
+    .read(dataHit_B),
     .write_en(writeEn_B),
     .rindex(memIndex),
     .windex(memIndex),
@@ -102,11 +112,9 @@ data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayB (
   );
 
 //mux dataArrayOut values to output 32b
-always_comb begin
-    logic [s_line:0] dataMuxInput = (dataRead_A == 1'b1) ? dataArrayOut_A : dataArrayOut_B;
-    logic [s_mask:0] dataMuxOutput = dataMuxInput[0:0];
-    assign dataOut = dataMuxOutput;
-end
+logic [s_line:0] dataMuxInput = (dataHit_A == 1'b1) ? dataArrayOut_A : dataArrayOut_B;
+logic [s_mask:0] dataMuxOutput = dataMuxInput[0:0];
+assign dataOut = dataMuxOutput;
 
 array #(.s_index(s_index), .s_width(1)) validArray_A (
     .clk(clk),
@@ -150,20 +158,22 @@ array #(.s_index(s_index), .s_width(1)) dirtyArray_B (
     .dataout(isDirty[1])
   );
 
-
-logic LRU_load, LRU_datain;
-
-//LRU code here
+//LRU: least recently used policy. Update based on hit so 0=wayA-LRU, 1=wayB-LRU
+logic LRUDataIn;
+always_comb begin
+    if (dataHit_B == 1'b1) LRUDataIn = 1'b0; //if B is hit, A is the LRU
+    else if (dataHit_A == 1'b1) LRUDataIn = 1'b1; //if A is hit, B is the LRU
+end
 
 array #(.s_index(s_index), .s_width(1)) LRUArray (
     .clk(clk),
     .rst(rst),
     .read(1'b1),
-    .load(LRU_load),
+    .load(LRULoad),
     .rindex(memIndex),
     .windex(memIndex),
-    .datain(LRU_datain),
-    .dataout(LRUout)
+    .datain(LRUDataIn),
+    .dataout(LRUOut)
   );
 
 endmodule : cache_datapath
