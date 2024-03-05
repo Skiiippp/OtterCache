@@ -27,6 +27,7 @@ module cacheline_adaptor(
     input logic [31:0] ser_d_in,
     input logic write_enable,
     input logic read_enable,
+    output logic resp,
     output logic [31:0] ser_d_out,
     output logic [255:0] par_d_out,
 

@@ -37,6 +37,7 @@ module cache_fsw(
         WB_WAIT,
         FETCH_CPU,
         FETCH_MMEM,
+        F_M_WAIT,
         ERROR
     } mem_state_t;
 
@@ -67,7 +68,7 @@ module cache_fsw(
             error <= 1'b0;
             case (state)
                 IDLE: begin
-                    _wrrd_state = 1'b0; // Reset basically
+                    _wrrd_state = 1'b0; // Reset this val basically
                     if(cpu_write)state <= WR_CHECK;
                     else if(cpu_read) state <= RD_CHECK;
                     else            state <= IDLE;
@@ -101,7 +102,6 @@ module cache_fsw(
                     end
                 end
                 WB_WAIT: begin 
-                    mem_write <= 1'b0;
                     if(!ca_resp)    state <= WB_WAIT;   // Again, ca_resp not in block diagram but should be added
                     else begin            
                         if(!_wrrd_state)    state <= FETCH_CPU;     // Write
@@ -113,7 +113,7 @@ module cache_fsw(
                     set_dirty[lru_out] <= 1'b1;
                     write_dirty[lru_out] <= 1'b1;
                     set_valid[lru_out] <= 1'b1;
-                    write_dirty[lru_out] <= 1'b1;
+                    write_valid[lru_out] <= 1'b1;
                     if(!lru_out) begin  // Way A
                         load_data_a <= 1'b1;
                         load_tag_a <= 1'b1;
@@ -121,9 +121,30 @@ module cache_fsw(
                         load_data_a <= 1'b1;
                         load_tag_a <= 1'b1;
                     end
+                    state <= WR_CHECK;  // Will hit/miss logic still work?
                 end
                 FETCH_MMEM: begin   // Writing to cache from main mem
-                    
+                    mem_read <= 1'b1;
+                    state <= F_M_WAIT;
+                end
+                F_M_WAIT: begin 
+                    if(!ca_resp) begin 
+                        state <= F_M_WAIT;
+                    end else begin 
+                        data_in_select <= 1'b1; // Mem data
+                        set_dirty[lru_out] <= 1'b1;
+                        write_dirty[lru_out] <= 1'b1;
+                        set_valid[lru_out] <= 1'b1;
+                        write_valid[lru_out] <= 1'b1;
+                        if(!lru_out) begin  // Way A
+                            load_data_a <= 1'b1;
+                            load_tag_a <= 1'b1;
+                        end else begin      // Way B
+                            load_data_a <= 1'b1;
+                            load_tag_a <= 1'b1;
+                        end
+                        state <= RD_CHECK;
+                    end
                 end
                 ERROR: begin 
                     state <= IDLE;
