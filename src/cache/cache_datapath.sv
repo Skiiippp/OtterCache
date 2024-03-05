@@ -23,8 +23,10 @@ module cache_datapath #(
     input logic [s_line:0] ca_dataOut,
     
     //fsm io
-    input logic load_data_A,
-    input logic load_data_B,
+    input logic load_dataBytes_A, //either select bytes or the entire cacheline can be written to
+    input logic load_dataBytes_B,
+    input logic load_dataLine_A,
+    input logic load_dataLine_B,
     input logic load_tag_A,
     input logic load_tag_B,
     input logic dataInSelect, //select CPU (0) or mem data (1) into data array
@@ -95,8 +97,8 @@ logic [s_line:0] dataArrayDataIn = (dataInSelect == 1'b1) ? ca_dataOut : cpu_dat
 
 //data byte write logic. Shift 4 byte enable bits by 4*offset amount
 logic [s_mask:0] dataWriteEn = cpu_byteEn << (4*memOffset);
-logic [s_mask:0] dataWriteEn_A = (load_data_A == 1'b1) ? dataWriteEn : 32'b0;
-logic [s_mask:0] dataWriteEn_B = (load_data_B == 1'b1) ? dataWriteEn : 32'b0;
+logic [s_mask:0] dataWriteEn_A = (load_dataLine_A == 1'b1) ? 32'b1 : ((load_dataBytes_A == 1'b1) ? dataWriteEn : 32'b0);
+logic [s_mask:0] dataWriteEn_B = (load_dataLine_B == 1'b1) ? 32'b1 : ((load_dataBytes_B == 1'b1) ? dataWriteEn : 32'b0);
 
 data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayA (
     .clk(clk),
