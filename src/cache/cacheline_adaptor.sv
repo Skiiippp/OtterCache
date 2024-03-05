@@ -22,6 +22,7 @@
 
 module cacheline_adaptor(
     
+    /*
     input logic clk,
     input logic [255:0] par_d_in,
     input logic [31:0] ser_d_in,
@@ -30,13 +31,14 @@ module cacheline_adaptor(
     output logic resp,
     output logic [31:0] ser_d_out,
     output logic [255:0] par_d_out,
-
-    // Just for passthrough to main mem
+    */
+    
     mem_itf.device ca_itf,
     mem_itf.controller pmem_itf
     
     );
     
+    /*
     // Probobly some hacky bullshit
     always_comb begin 
         pmem_itf.rst = ca_itf.rst;
@@ -47,7 +49,32 @@ module cacheline_adaptor(
         pmem_itf.mem_byte_enable = ca_itf.mem_byte_enable;
         ca_itf.mem_resp = pmem_itf.mem_resp;
         ca_itf.mem_rdata = pmem_itf.mem_rdata;
+    end
+    */
 
+    logic clk, write_enable, read_enable, resp;
+    logic [255:0] par_d_in, par_d_out;
+    logic [31:0] ser_d_in, ser_d_out;
+
+    // MORE hacky bullshit
+    always_comb begin
+        // cache <-> ca
+        clk = ca_itf.clk;
+        write_enable = ca_itf.mem_write;
+        read_enable = ca_itf.mem_read;
+        par_d_in = ca_itf.mem_wdata;
+        par_d_out = ca_itf.mem_rdata;
+        resp = ca_itf.mem_resp;
+
+        // ca <-> pmem
+        clk = pmem_itf.clk;
+        ser_d_in = pmem_itf.mem_rdata;
+        ser_d_out = pmem_itf.mem_wdata;
+
+        //Passthrough - cache <-> pmem
+        pmem_itf.rst = ca_itf.rst;
+        pmem_itf.mem_address = ca_itf.mem_address;
+        pmem_itf.mem_byte_enable = ca_itf.mem_byte_enable;
     end
     
     /*
