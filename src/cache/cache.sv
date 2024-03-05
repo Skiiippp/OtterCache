@@ -16,9 +16,9 @@ module cache #(
 );
 
 
-cache_control control(.*);
+//cache_control control(.*);
 
-cache_datapath datapath(.*);
+//cache_datapath datapath(.*);
 
 
 //Sample code to convert CPU bus requests (32-bit data) to cache signals (mostly 256-bit data)

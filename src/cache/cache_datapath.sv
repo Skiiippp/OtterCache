@@ -52,7 +52,7 @@ logic [4:0] memOffset = cpu_memAddr[4:0];
 
 //data array associated wires
 logic writeEnDataArray_A [s_mask:0]; //want to be able to be byte writable from the CPU, handled in data_array
-logic writeEnDataArray_A [s_mask:0];
+logic writeEnDataArray_B [s_mask:0];
 logic [s_line:0] dataArrayOut_A;
 logic [s_line:0] dataArrayOut_B;
 
