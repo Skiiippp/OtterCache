@@ -66,7 +66,7 @@ logic dirtyArrayOut_A, dirtyArrayOut_B;
 
 ///////////////////////////// comb/datapaths /////////////////////////////////
 
-array #(.s_index(s_index), .s_width(24)) TagArray_A (
+array #(.s_index(s_index), .width(24)) TagArray_A (
     .clk(clk),
     .rst(rst),
     .read(1'b1),
@@ -76,7 +76,7 @@ array #(.s_index(s_index), .s_width(24)) TagArray_A (
     .datain(memTag),
     .dataout(tagArrayOut_A)
   ); 
-array #(.s_index(s_index), .s_width(24)) TagArray_B (
+array #(.s_index(s_index), .width(24)) TagArray_B (
     .clk(clk),
     .rst(rst),
     .read(1'b1),
@@ -128,7 +128,7 @@ logic [s_mask:0] preMaskedDataMux = dataMuxInput >> (s_mask*memOffset); //shift 
 logic [s_mask:0] dataMuxOutput = preMaskedDataMux[s_mask:0];
 assign cpu_dataIn = dataMuxOutput;
 
-array #(.s_index(s_index), .s_width(1)) validArray_A (
+array #(.s_index(s_index), .width(1)) validArray_A (
     .clk(clk),
     .rst(rst),
     .read(1'b1),
@@ -138,7 +138,7 @@ array #(.s_index(s_index), .s_width(1)) validArray_A (
     .datain(setValid[0]),
     .dataout(isValid[0])
   ); 
-array #(.s_index(s_index), .s_width(1)) validArray_B (
+array #(.s_index(s_index), .width(1)) validArray_B (
     .clk(clk),
     .rst(rst),
     .read(1'b1),
@@ -149,7 +149,7 @@ array #(.s_index(s_index), .s_width(1)) validArray_B (
     .dataout(isValid[1])
   ); 
   
-array #(.s_index(s_index), .s_width(1)) dirtyArray_A (
+array #(.s_index(s_index), .width(1)) dirtyArray_A (
     .clk(clk),
     .rst(rst),
     .read(1'b1),
@@ -159,7 +159,7 @@ array #(.s_index(s_index), .s_width(1)) dirtyArray_A (
     .datain(setDirty[0]),
     .dataout(isDirty[0])
   ); 
-array #(.s_index(s_index), .s_width(1)) dirtyArray_B (
+array #(.s_index(s_index), .width(1)) dirtyArray_B (
     .clk(clk),
     .rst(rst),
     .read(1'b1),
@@ -177,7 +177,7 @@ always_comb begin
     else if (dataHit_A == 1'b1) LRUDataIn = 1'b1; //if A is hit, B is the LRU
 end
 
-array #(.s_index(s_index), .s_width(1)) LRUArray (
+array #(.s_index(s_index), .width(1)) LRUArray (
     .clk(clk),
     .rst(rst),
     .read(1'b1),
