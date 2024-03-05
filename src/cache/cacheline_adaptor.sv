@@ -93,7 +93,7 @@ module cacheline_adaptor(
     end
     */
     
-    serializer ser(clk, par_d_in, write_enable, read_enable, ser_d_out);
-    deserializer des(clk, ser_d_in, write_enable, read_enable, par_d_out);
+    serializer ser(clk, par_d_in, write_enable, read_enable, resp, ser_d_out);
+    deserializer des(clk, ser_d_in, write_enable, read_enable, resp, par_d_out);
     
 endmodule
