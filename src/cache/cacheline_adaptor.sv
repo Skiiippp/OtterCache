@@ -28,13 +28,26 @@ module cacheline_adaptor(
     input logic write_enable,
     input logic read_enable,
     output logic [31:0] ser_d_out,
-    output logic [255:0] par_d_out
-    
-    
-    //mem_itf.device ca_itf,
-    //mem_itf.controller pmem_itf
+    output logic [255:0] par_d_out,
+
+    // Just for passthrough to main mem
+    mem_itf.device ca_itf,
+    mem_itf.controller pmem_itf
     
     );
+    
+    // Probobly some hacky bullshit
+    always_comb begin 
+        pmem_itf.rst = ca_itf.rst;
+        pmem_itf.mem_read = ca_itf.mem_read;
+        pmem_itf.mem_write = ca_itf.mem_write;
+        pmem_itf.mem_address = ca_itf.mem_address;
+        pmem_itf.mem_wdata = ca_itf.mem_wdata;
+        pmem_itf.mem_byte_enable = ca_itf.mem_byte_enable;
+        ca_itf.mem_resp = pmem_itf.mem_resp;
+        ca_itf.mem_rdata = pmem_itf.mem_rdata;
+
+    end
     
     /*
     logic clk, write_enable, read_enable;

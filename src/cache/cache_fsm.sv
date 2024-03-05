@@ -47,26 +47,27 @@ module cache_fsw(
     // ** FSM **
     initial state = IDLE; // initial state is idle
     always @(posedge clk) begin
+        cpu_mem_valid <= 1'b0;
+        load_data_a <= 1'b0;
+        load_data_b <= 1'b0;
+        lru_load <= 1'b0;
+        load_tag_a <= 1'b0;
+        load_tag_b <= 1'b0;
+        mem_read <= 1'b0;
+        mem_write <= 1'b0;
+        data_in_select <= 1'b0;
+        error <= 1'b0;
+        set_dirty = 2'b0;
+        write_dirty = 2'b0;
+        set_valid = 2'b0;
+        write_valid = 2'b0;
+
         if(rst) state <= IDLE;
         else begin
             error <= 1'b0;
             case (state)
                 IDLE: begin
-                    cpu_mem_valid <= 1'b0;
-                    load_data_a <= 1'b0;
-                    load_data_b <= 1'b0;
-                    lru_load <= 1'b0;
-                    load_tag_a <= 1'b0;
-                    load_tag_b <= 1'b0;
-                    mem_read <= 1'b0;
-                    mem_write <= 1'b0;
-                    data_in_select <= 1'b0;
-                    error <= 1'b0;
-                    set_dirty = 2'b0;
-                    write_dirty = 2'b0;
-                    set_valid = 2'b0;
-                    write_valid = 2'b0;
-                    _wrrd_state = 1'b0;
+                    _wrrd_state = 1'b0; // Reset basically
                     if(cpu_write)state <= WR_CHECK;
                     else if(cpu_read) state <= RD_CHECK;
                     else            state <= IDLE;
@@ -92,7 +93,8 @@ module cache_fsw(
                 end
                 WRITEBACK: begin // Need to get data from cache to main mem
                     if(!is_dirty[lru_out] || !is_valid[lru_out]) begin  // lru_out = 1'b0 - Way A is LRU
-                        state <= CACHE_LOAD;
+                        if(!_wrrd_state)    state <= FETCH_CPU;
+                        else                state <= FETCH_MMEM;
                     end else begin          // eq. VALID & DIRTY - begin writing to mem
                         mem_write <= 1'b1;
                         state <= WB_WAIT;
@@ -107,10 +109,21 @@ module cache_fsw(
                     end
                 end
                 FETCH_CPU: begin    // Writing to cache from CPU
-                    
+                    data_in_select <= 1'b0; // CPU data
+                    set_dirty[lru_out] <= 1'b1;
+                    write_dirty[lru_out] <= 1'b1;
+                    set_valid[lru_out] <= 1'b1;
+                    write_dirty[lru_out] <= 1'b1;
+                    if(!lru_out) begin  // Way A
+                        load_data_a <= 1'b1;
+                        load_tag_a <= 1'b1;
+                    end else begin      // Way B
+                        load_data_a <= 1'b1;
+                        load_tag_a <= 1'b1;
+                    end
                 end
                 FETCH_MMEM: begin   // Writing to cache from main mem
-
+                    
                 end
                 ERROR: begin 
                     state <= IDLE;
