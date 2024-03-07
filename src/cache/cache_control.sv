@@ -11,6 +11,10 @@ module cache_control(
         is_dirty,
         is_valid,
     output logic
+        load_data_bytes_a,
+        load_data_bytes_b,
+        load_data_lines_a,
+        load_data_lines_b,
         cpu_mem_valid,
         load_data_a,
         load_data_b,
@@ -33,7 +37,7 @@ module cache_control(
         IDLE,
         WR_CHECK,
         RD_CHECK,
-        WRITEBACK,
+        WB_CHECK,
         WB_WAIT,
         FETCH_CPU,
         FETCH_MMEM,
@@ -50,6 +54,10 @@ module cache_control(
     // ** FSM **
     initial state = IDLE; // initial state is idle
     always @(posedge clk) begin
+        load_data_bytes_a <= 1'b0;
+        load_data_bytes_b <= 1'b0;
+        load_data_lines_a <= 1'b0;
+        load_data_lines_b <= 1'b0;
         cpu_mem_valid <= 1'b0;
         load_data_a <= 1'b0;
         load_data_b <= 1'b0;
@@ -91,10 +99,10 @@ module cache_control(
                         state <= IDLE;
                     end else begin
                         _wrrd_state = 1'b1; 
-                        state <= WRITEBACK;
+                        state <= WB_CHECK;
                     end
                 end
-                WRITEBACK: begin // Need to get data from cache to main mem
+                WB_CHECK: begin // Need to get data from cache to main mem
                     if(!is_dirty[lru_out] || !is_valid[lru_out]) begin  // lru_out = 1'b0 - Way A is LRU
                         if(!_wrrd_state)    state <= FETCH_CPU;
                         else                state <= FETCH_MMEM;
@@ -106,8 +114,38 @@ module cache_control(
                 WB_WAIT: begin 
                     if(!ca_resp)    state <= WB_WAIT;   // Again, ca_resp not in block diagram but should be added
                     else begin            
-                        if(!_wrrd_state)    state <= FETCH_CPU;     // Write
-                        else                state <= FETCH_MMEM;    // Read
+                        state <= FETCH_MMEM;
+                    end
+                end
+                FETCH_MMEM: begin   // Writing to cache from main mem
+                    mem_read <= 1'b1;
+                    state <= F_M_WAIT;
+                end
+                F_M_WAIT: begin     // should just wait 8 cycles
+                    if(fmw_cnt < 8) begin 
+                        fmw_cnt <= fmw_cnt + 1;
+                        state <= F_M_WAIT;
+                    end else begin
+                        if(!lru_out)    load_data_lines_a <= 1'b1;
+                        else            load_data_lines_b <= 1'b1;
+                        if(!_wrrd_state) begin 
+                            state <= FETCH_CPU;
+                        end else begin 
+                            fmw_cnt <= 0;
+                            data_in_select <= 1'b1; // Mem data
+                            set_dirty[lru_out] <= 1'b1;
+                            write_dirty[lru_out] <= 1'b1;
+                            set_valid[lru_out] <= 1'b1;
+                            write_valid[lru_out] <= 1'b1;
+                            if(!lru_out) begin  // Way A
+                                load_data_a <= 1'b1;
+                                load_tag_a <= 1'b1;
+                            end else begin      // Way B
+                                load_data_b <= 1'b1;
+                                load_tag_b <= 1'b1;
+                            end
+                            state <= RD_CHECK;
+                        end
                     end
                 end
                 FETCH_CPU: begin    // Writing to cache from CPU
@@ -119,36 +157,13 @@ module cache_control(
                     if(!lru_out) begin  // Way A
                         load_data_a <= 1'b1;
                         load_tag_a <= 1'b1;
+                        load_data_bytes_a <= 1'b1;
                     end else begin      // Way B
-                        load_data_a <= 1'b1;
-                        load_tag_a <= 1'b1;
+                        load_data_b <= 1'b1;
+                        load_tag_b <= 1'b1;
+                        load_data_bytes_b <= 1'b1;
                     end
                     state <= WR_CHECK;  // Will hit/miss logic still work?
-                end
-                FETCH_MMEM: begin   // Writing to cache from main mem
-                    mem_read <= 1'b1;
-                    state <= F_M_WAIT;
-                end
-                F_M_WAIT: begin     // should just wait 8 cycles
-                    if(fmw_cnt < 8) begin 
-                        fmw_cnt <= fmw_cnt + 1;
-                        state <= F_M_WAIT;
-                    end else begin 
-                        fmw_cnt <= 0;
-                        data_in_select <= 1'b1; // Mem data
-                        set_dirty[lru_out] <= 1'b1;
-                        write_dirty[lru_out] <= 1'b1;
-                        set_valid[lru_out] <= 1'b1;
-                        write_valid[lru_out] <= 1'b1;
-                        if(!lru_out) begin  // Way A
-                            load_data_a <= 1'b1;
-                            load_tag_a <= 1'b1;
-                        end else begin      // Way B
-                            load_data_a <= 1'b1;
-                            load_tag_a <= 1'b1;
-                        end
-                        state <= RD_CHECK;
-                    end
                 end
                 ERROR: begin 
                     state <= IDLE;
