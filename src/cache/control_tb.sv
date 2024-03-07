@@ -30,6 +30,8 @@ module control_tb();
         
         // miss
         cpu_write = 1'b1; is_valid = 2'b1; hit = 1'b0;
+        #10
+        cpu_write = 1'b0;
 
     end
 

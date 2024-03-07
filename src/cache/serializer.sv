@@ -25,13 +25,15 @@ module serializer(
     input logic [255:0] data_in,
     input logic in_write_ready,
     input logic in_read_ready,
-    output logic resp,
+    //output logic resp,
     output logic [31:0] data_out
 );
 
 logic [7:0][31:0] write_regs;    // Blocks 7-0
 int counter = 0; 
 logic reg_enable, write_status, read_status;
+
+logic resp;
 
 assign write_status = in_write_ready;
 
