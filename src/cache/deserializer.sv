@@ -59,10 +59,7 @@ always_ff @(posedge clk) begin
             write_regs[1] <= write_regs[2];
             write_regs[0] <= write_regs[1];
             counter <= counter + 1;
-            if (counter > 6) begin
-                counter <= 0;
-                resp <= 1'b1;
-            end
+            if (counter > 6) counter <= 0;
         end else begin
             data_out[255:224] <= write_regs[7];
             data_out[223:192] <= write_regs[6];
@@ -71,7 +68,8 @@ always_ff @(posedge clk) begin
             data_out[127:96] <= write_regs[3];
             data_out[95:64] <= write_regs[2];
             data_out[64:32] <= write_regs[1];
-            data_out[31:0] <= write_regs[0]; 
+            data_out[31:0] <= write_regs[0];
+            resp <= 1'b1; 
         end
     end
 end

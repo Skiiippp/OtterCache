@@ -50,14 +50,14 @@ module cacheline_adaptor(
         if(pmem_itf.mem_resp) begin 
             des_write_enable = 1'b1;
         end else begin 
-            der_write_enable = 1'b0;
+            des_write_enable = 1'b0;
         end
 
         // wait for des resp, then send response to cache
         if(des_resp) begin 
-            ca_itf.resp = 1'b1;
+            ca_itf.mem_resp = 1'b1;
         end else begin 
-            ca_itf.resp = 1'b0;
+            ca_itf.mem_resp = 1'b0;
         end
     end
 
@@ -80,10 +80,15 @@ module cacheline_adaptor(
         end else begin 
             pmem_itf.mem_write = 1'b0;
         end 
-
-        // wait for 
-
     end 
+
+    // passthrough from cache to pmem
+    always_comb begin 
+        //pmem_itf.clk = ca_itf.clk;
+        pmem_itf.rst = ca_itf.rst;
+        pmem_itf.mem_address = ca_itf.mem_address;
+        pmem_itf.mem_byte_enable = ca_itf.mem_byte_enable;
+    end
 
     deserializer des(clk, ser_d_in, write_enable, read_enable, des_resp, par_d_out);
     serializer ser(clk, par_d_in, write_enable, read_enable, ser_resp, ser_d_out);

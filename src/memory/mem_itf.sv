@@ -27,7 +27,7 @@ interface mem_itf
     
     modport controller(
         input mem_resp, mem_rdata,
-        output clk, rst, mem_read, mem_write, mem_address, mem_wdata, mem_byte_enable
+        output clk, output rst, mem_read, mem_write, mem_address, mem_wdata, mem_byte_enable
     );
     modport device(
         output mem_resp, mem_rdata,

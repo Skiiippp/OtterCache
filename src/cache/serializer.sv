@@ -25,7 +25,7 @@ module serializer(
     input logic [255:0] data_in,
     input logic in_write_ready,
     input logic in_read_ready,
-    //output logic resp,
+    output logic resp,
     output logic [31:0] data_out
 );
 
