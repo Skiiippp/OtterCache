@@ -108,7 +108,8 @@ end
 logic [s_mask-1:0] dataWriteEn_A;
 logic [s_mask-1:0] dataWriteEn_B;
 always_comb begin
-    logic [s_mask-1:0] dataWriteEn = cpu_byteEn << (4*memOffset);
+    logic [s_mask-1:0] dataWriteEn;
+    dataWriteEn = cpu_byteEn << (4*memOffset);
     dataWriteEn_A = (load_dataLine_A == 1'b1) ? 32'hFFFFFFFF : ((load_dataBytes_A == 1'b1) ? dataWriteEn : 32'b0);
     dataWriteEn_B = (load_dataLine_B == 1'b1) ? 32'hFFFFFFFF : ((load_dataBytes_B == 1'b1) ? dataWriteEn : 32'b0);
 end

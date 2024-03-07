@@ -33,8 +33,6 @@ logic [7:0][31:0] write_regs;    // Blocks 7-0
 int counter = 0; 
 logic reg_enable, write_status, read_status;
 
-logic resp;
-
 assign write_status = in_write_ready;
 
 always_comb begin
