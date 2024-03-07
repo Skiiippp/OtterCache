@@ -45,6 +45,8 @@ module cache_control(
 
     logic _wrrd_state;  // 0 - write, 1 read
 
+    int fmw_cnt = 0;
+
     // ** FSM **
     initial state = IDLE; // initial state is idle
     always @(posedge clk) begin
@@ -127,10 +129,12 @@ module cache_control(
                     mem_read <= 1'b1;
                     state <= F_M_WAIT;
                 end
-                F_M_WAIT: begin 
-                    if(!ca_resp) begin 
+                F_M_WAIT: begin     // should just wait 8 cycles
+                    if(fmw_cnt < 8) begin 
+                        fmw_cnt <= fmw_cnt + 1;
                         state <= F_M_WAIT;
                     end else begin 
+                        fmw_cnt <= 0;
                         data_in_select <= 1'b1; // Mem data
                         set_dirty[lru_out] <= 1'b1;
                         write_dirty[lru_out] <= 1'b1;
