@@ -1,5 +1,4 @@
-/* MODIFY. Your cache design. It contains the cache
-controller, cache datapath, and bus adapter. */
+//CPE333 lab2 Cache. James Gruber, Braydon Burkhardt rev A
 
 module cache #(
     parameter s_offset = 5,
@@ -15,17 +14,67 @@ module cache #(
 
 );
 
+logic clk, rst, cpu_read, cpu_write, lru_out, ca_resp, hit;
+logic [1:0] is_dirty, is_valid;
+logic cpu_mem_valid, load_data_a, load_data_b, lru_load, load_tag_a, load_tag_b, mem_read, mem_write, data_in_select, error;
+logic [1:0] set_dirty, write_dirty, set_valid, write_valid;
 
-//cache_control control(.*);
+assign ca_itf.clk = cpu_itf.clk;
+assign ca_itf.rst = cpu_itf.rst;
+assign ca_itf.mem_byte_enable = 4'b1111;
+assign ca_itf.mem_address = cpu.itf.mem_address;
 
-//cache_datapath datapath(.*);
+cache_control control(
+    .clk(clk),
+    .rst(rst),
+    .cpu_read(cpu_itf.mem_read),
+    .cpu_write(cpu_itf.mem_write),
+    .lru_out(lru_out),
+    .ca_resp(ca_itf.mem_resp),
+    .hit(hit),
+    .is_dirty(is_dirty),
+    .is_valid(is_valid),
+    .cpu_mem_valid(cpu_itf.mem_resp),
+    .load_data_a(load_data_a),
+    .load_data_b(load_data_b),
+    .lru_load(lru_load),
+    .load_tag_a(load_tag_a),
+    .load_tag_b(load_tag_b),
+    .mem_read(ca_itf.mem_read),
+    .mem_write(ca_itf.mem_write),
+    .data_in_select(data_in_select),
+    .error(error),
+    .set_dirty(set_dirty),
+    .write_dirty(write_dirty),
+    .set_valid(set_valid),
+    .write_valid(write_valid)
+);
 
-
-//Sample code to convert CPU bus requests (32-bit data) to cache signals (mostly 256-bit data)
-
-//assign mem_wdata256 = {8{mem_wdata}};   	//Cache write data <-  from CPU wdata	
-//assign mem_rdata = mem_rdata256[(32*address[4:2]) +: 32];		//CPU rdata <-  from cache line read (rdata256)
-//assign mem_byte_enable256 = {28'h0, mem_byte_enable} << (address[4:2]*4);	//byte enable mask to data_arary in cache  //32bit Cache write enable <- 4-bit CPU strobe (byte enable) 
-
+cache_datapath #(.s_offset(s_offset), .s_index(s_index)) datapath(
+    .clk(clk),
+    .rst(rst),
+    .cpu_memAddr(cpu_itf.mem_address),
+    .cpu_byteEn(cpu_byteEn),
+    .cpu_dataIn(cpu_itf.mem_wdata),
+    .cpu_dataOut(cpu_itf.mem_rdata),
+    .ca_dataIn(ca_itf.mem_wdata),
+    .ca_dataOut(ca_itf.mem_rdata),
+    .load_dataBytes_A(load_dataBytes_a), //todo: fix
+    .load_dataBytes_B(load_dataBytes_b),
+    .load_dataLine_A(load_dataLine_a),
+    .load_dataLine_B(load_dataLine_b),
+    .load_tag_A(load_tag_a),
+    .load_tag_B(load_tag_b),
+    .dataInSelect(data_in_select),
+    .setValid(set_valid),
+    .writeValid(write_valid),
+    .setDirty(set_dirty),
+    .writeDirty(write_dirty),
+    .isHit(hit),
+    .isValid(is_valid),
+    .isDirty(is_dirty),
+    .LRULoad(lru_load),
+    .LRUOut(lru_out)
+    );
 
 endmodule : cache

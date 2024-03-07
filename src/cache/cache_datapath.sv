@@ -20,7 +20,7 @@ module cache_datapath #(
     
     //cacheline adapter io
     input logic [s_line-1:0] ca_dataIn,
-    input logic [s_line-1:0] ca_dataOut,
+    output logic [s_line-1:0] ca_dataOut,
     
     //fsm io
     input logic load_dataBytes_A, //either select bytes or the entire cacheline can be written to
@@ -101,7 +101,7 @@ end
 //data input mux to data arrays
 logic [s_line-1:0] dataArrayDataIn;
 always_comb begin
-    dataArrayDataIn = (dataInSelect == 1'b1) ? ca_dataOut : cpu_dataOut;
+    dataArrayDataIn = (dataInSelect == 1'b1) ? ca_dataIn : cpu_dataIn;
 end
 
 //data byte write logic. Shift 4 byte enable bits by 4*offset amount
@@ -141,8 +141,8 @@ logic [s_mask-1:0] dataMuxOutput;
 always_comb begin
     dataMuxInput = (dataHit_A == 1'b1) ? dataArrayOut_A : dataArrayOut_B;
     preMaskedDataMux = dataMuxInput >> (s_mask*memOffset); //shift by 32*offset, mask for the first 32 bits
-    assign ca_dataIn = dataMuxInput;
-    assign cpu_dataIn = preMaskedDataMux[s_mask-1:0];
+    assign ca_dataOut = dataMuxInput;
+    assign cpu_dataOut = preMaskedDataMux[s_mask-1:0];
 end
 
 
