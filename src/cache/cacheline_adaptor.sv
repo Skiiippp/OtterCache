@@ -34,13 +34,10 @@ module cacheline_adaptor(
     logic [255:0] par_d_in, par_d_out;
     logic [31:0] ser_d_in, ser_d_out;
 
-    assign par_d_out = ca_itf.mem_rdata;
-    assign ser_d_out = pmem_itf.mem_wdata;
-
     // read logic - deserialize
     always_comb begin
         ser_d_in = pmem_itf.mem_rdata;
-        //par_d_out = ca_itf.mem_rdata;
+        ca_itf.mem_rdata = par_d_out;
 
         // passthrough read signal 
         if(ca_itf.mem_read) begin 
@@ -68,7 +65,7 @@ module cacheline_adaptor(
     // write logic - serialize
     always_comb begin
         par_d_in = ca_itf.mem_wdata;
-        //ser_d_out = pmem_itf.mem_wdata;
+        pmem_itf.mem_wdata = ser_d_out;
 
         // write signal - write to ca
         if(ca_itf.mem_write) begin 
