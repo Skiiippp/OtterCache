@@ -85,7 +85,7 @@ initial begin
 
     //cacheline tag and data load test
     cpu_memAddr = 32'b01100000000000000000000001100000; //tag=12582912  index=3    offset=0
-    ca_dataOut = 256'hdeadbeef;
+    ca_dataIn = 256'hdeadbeef;
     dataInSelect = 1'b1;
     ##5
     load_dataLine_A = 1'b1;
