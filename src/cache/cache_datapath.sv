@@ -13,14 +13,14 @@ module cache_datapath #(
     input logic rst,
     
     //cpu io
-    input logic [s_mask:0] cpu_memAddr,
+    input logic [s_mask-1:0] cpu_memAddr,
     input logic [3:0] cpu_byteEn,
-    input logic [s_mask:0] cpu_dataIn,
-    output logic [s_mask:0] cpu_dataOut,
+    input logic [s_mask-1:0] cpu_dataIn,
+    output logic [s_mask-1:0] cpu_dataOut,
     
     //cacheline adapter io
-    input logic [s_line:0] ca_dataIn,
-    input logic [s_line:0] ca_dataOut,
+    input logic [s_line-1:0] ca_dataIn,
+    input logic [s_line-1:0] ca_dataOut,
     
     //fsm io
     input logic load_dataBytes_A, //either select bytes or the entire cacheline can be written to
@@ -46,15 +46,18 @@ module cache_datapath #(
 ///////////////////////////// regs and wires /////////////////////////////////
 
 //split the incoming mem address into its respective parts
-logic [23:0] memTag = cpu_memAddr[31:8];
-logic [2:0] memIndex = cpu_memAddr[7:5];
-logic [4:0] memOffset = cpu_memAddr[4:0];
+logic [23:0] memTag;
+logic [2:0] memIndex;
+logic [4:0] memOffset;
+always_comb begin
+    memTag = cpu_memAddr[31:8];
+    memIndex = cpu_memAddr[7:5];
+    memOffset = cpu_memAddr[4:0];
+end
 
 //data array associated wires
-logic writeEnDataArray_A [s_mask:0]; //want to be able to be byte writable from the CPU, handled in data_array
-logic writeEnDataArray_B [s_mask:0];
-logic [s_line:0] dataArrayOut_A;
-logic [s_line:0] dataArrayOut_B;
+logic [s_line-1:0] dataArrayOut_A;
+logic [s_line-1:0] dataArrayOut_B;
 
 //tag array associated wires
 logic tagLoad_A, tagLoad_B;
@@ -88,17 +91,27 @@ array #(.s_index(s_index), .width(24)) TagArray_B (
   ); 
   
 //seperate data reads allow to act as the 2:1 mux (hit controls read)
-logic dataHit_A = (tagArrayOut_A == memTag) ? 1'b1 : 1'b0;
-logic dataHit_B = (tagArrayOut_B == memTag) ? 1'b1 : 1'b0;
-assign isHit = (dataHit_A == 1'b1 || dataHit_B == 1'b1) ? 1'b1 : 1'b0;
+logic dataHit_A, dataHit_B;
+always_comb begin
+    dataHit_A = (tagArrayOut_A == memTag) ? 1'b1 : 1'b0;
+    dataHit_B = (tagArrayOut_B == memTag) ? 1'b1 : 1'b0;
+    assign isHit = (dataHit_A == 1'b1 || dataHit_B == 1'b1) ? 1'b1 : 1'b0;
+end
 
 //data input mux to data arrays
-logic [s_line:0] dataArrayDataIn = (dataInSelect == 1'b1) ? ca_dataOut : cpu_dataOut;
+logic [s_line-1:0] dataArrayDataIn;
+always_comb begin
+    dataArrayDataIn = (dataInSelect == 1'b1) ? ca_dataOut : cpu_dataOut;
+end
 
 //data byte write logic. Shift 4 byte enable bits by 4*offset amount
-logic [s_mask:0] dataWriteEn = cpu_byteEn << (4*memOffset);
-logic [s_mask:0] dataWriteEn_A = (load_dataLine_A == 1'b1) ? 32'b1 : ((load_dataBytes_A == 1'b1) ? dataWriteEn : 32'b0);
-logic [s_mask:0] dataWriteEn_B = (load_dataLine_B == 1'b1) ? 32'b1 : ((load_dataBytes_B == 1'b1) ? dataWriteEn : 32'b0);
+logic [s_mask-1:0] dataWriteEn_A;
+logic [s_mask-1:0] dataWriteEn_B;
+always_comb begin
+    logic [s_mask-1:0] dataWriteEn = cpu_byteEn << (4*memOffset);
+    dataWriteEn_A = (load_dataLine_A == 1'b1) ? 32'hFFFFFFFF : ((load_dataBytes_A == 1'b1) ? dataWriteEn : 32'b0);
+    dataWriteEn_B = (load_dataLine_B == 1'b1) ? 32'hFFFFFFFF : ((load_dataBytes_B == 1'b1) ? dataWriteEn : 32'b0);
+end
 
 data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayA (
     .clk(clk),
@@ -122,11 +135,16 @@ data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayB (
   );
 
 //data output mux
-logic [s_line:0] dataMuxInput = (dataHit_A == 1'b1) ? dataArrayOut_A : dataArrayOut_B;
-assign ca_dataIn = dataMuxInput;
-logic [s_mask:0] preMaskedDataMux = dataMuxInput >> (s_mask*memOffset); //shift by 32*offset, mask for the first 32 bits
-logic [s_mask:0] dataMuxOutput = preMaskedDataMux[s_mask:0];
-assign cpu_dataIn = dataMuxOutput;
+logic [s_line-1:0] dataMuxInput;
+logic [s_mask-1:0] preMaskedDataMux;
+logic [s_mask-1:0] dataMuxOutput;
+always_comb begin
+    dataMuxInput = (dataHit_A == 1'b1) ? dataArrayOut_A : dataArrayOut_B;
+    preMaskedDataMux = dataMuxInput >> (s_mask*memOffset); //shift by 32*offset, mask for the first 32 bits
+    assign ca_dataIn = dataMuxInput;
+    assign cpu_dataIn = preMaskedDataMux[s_mask-1:0];
+end
+
 
 array #(.s_index(s_index), .width(1)) validArray_A (
     .clk(clk),
