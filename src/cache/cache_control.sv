@@ -89,7 +89,7 @@ module cache_control(
                         state <= IDLE;
                     end else begin
                         _wrrd_state = 1'b0; 
-                        state <= WRITEBACK;
+                        state <= WB_CHECK;
                     end 
                 end
                 RD_CHECK: begin 

@@ -61,7 +61,7 @@ logic [s_line-1:0] dataArrayOut_B;
 
 //tag array associated wires
 logic tagLoad_A, tagLoad_B;
-logic [23:0] tagArrayOut_A, tageArrayOut_B;
+logic [23:0] tagArrayOut_A, tagArrayOut_B;
 
 //other metadata wires
 logic validArrayOut_A, validArrayOut_B;

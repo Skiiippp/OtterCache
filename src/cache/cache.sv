@@ -22,7 +22,7 @@ logic [1:0] set_dirty, write_dirty, set_valid, write_valid;
 assign ca_itf.clk = cpu_itf.clk;
 assign ca_itf.rst = cpu_itf.rst;
 assign ca_itf.mem_byte_enable = 4'b1111;
-assign ca_itf.mem_address = cpu.itf.mem_address;
+assign ca_itf.mem_address = cpu_itf.mem_address;
 
 cache_control control(
     .clk(clk),
@@ -58,7 +58,7 @@ cache_datapath #(.s_offset(s_offset), .s_index(s_index)) datapath(
     .clk(clk),
     .rst(rst),
     .cpu_memAddr(cpu_itf.mem_address),
-    .cpu_byteEn(cpu_byteEn),
+    .cpu_byteEn(cpu_itf.mem_byte_enable),
     .cpu_dataIn(cpu_itf.mem_wdata),
     .cpu_dataOut(cpu_itf.mem_rdata),
     .ca_dataIn(ca_itf.mem_wdata),
