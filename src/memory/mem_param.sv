@@ -11,7 +11,7 @@ module ParamMemory
     parameter int USE_STROBE         // Binary
 )
 (
-    mem_itf.mem itf
+    mem_itf.device itf
 );
 
 localparam int BURST_WIDTH = CACHE_LINE_WIDTH / BURST_LEN;
@@ -19,12 +19,14 @@ localparam int ADDRLEN = 32;
 localparam int CARELEN = ADDRLEN - $clog2(CACHE_LINE_WIDTH / 8);
 localparam logic [ADDRLEN-1:0] mask = {{(CARELEN){1'b1}},
                                        {(ADDRLEN-CARELEN){1'b0}}};
+localparam ACTUAL_WIDTH=14;  //32KB     16K x 32
 
-logic [CACHE_LINE_WIDTH-1:0] _mem [logic [ADDRLEN-1:0]];
 int signed pageno=-1;
 
+logic [CACHE_LINE_WIDTH-1:0] _mem [ACTUAL_WIDTH-1:0];
+
 //Load program into memory
-parameter ACTUAL_WIDTH=14;  //32KB     16K x 32
+
 initial begin
     if(USE_STROBE)
         $readmemh("otter_memory.mem", _mem, 0, 2**ACTUAL_WIDTH-1);
@@ -33,156 +35,85 @@ initial begin
 end
 
 
+enum int unsigned
+{ IDLE, DELAY, READ_BURST, WRITE_BURST, DONE } state, next_state;
 
-initial begin
-    int iteration = 0;
-    forever begin
-        @(itf.mcb iff (itf.mcb.rst || itf.mcb.mem_read || itf.mcb.mem_write))
-        //$display("%d", {itf.mcb.rst, itf.mcb.mem_read, itf.mcb.mem_write});
-        case ({1'b0, itf.mcb.mem_read, itf.mcb.mem_write}) //itf.mcb.rst
-            3'b100, 3'b101, 3'b111, 3'b110: begin
-                reset();
-            end
-            3'b010: memread(itf.mcb.mem_address);
-            3'b001: memwrite(itf.mcb.mem_address);
-            default: $error("simultaneous read/write");
-        endcase
-    end
+logic cnt_en,cnt_clr,mread,mwrite,mresp;
+logic [7:0] cnt=0;
+logic [ADDRLEN-1:0] _addr;
+logic [31:0] _read_loc;
+
+always_ff @(posedge itf.clk)    begin
+        state <= next_state;
+        if(cnt_clr) cnt<=0;
+        else if(cnt_en) cnt <= cnt+1;
+        if(itf.rst) begin  cnt<=0; state<=IDLE; end
+        
+        itf.mem_resp <= mresp;
+        if(mread) itf.mem_rdata <= _mem[_read_loc][BURST_WIDTH*cnt +: BURST_WIDTH];
+        if(mwrite)   begin 
+                        if(USE_STROBE) begin
+                                for (int j = 0; j < 4; ++j) begin
+                                    if (itf.mem_byte_enable[j])
+                                        _mem[_read_loc][8*j +: 8] <= itf.mem_wdata[8*j +: 8]; 
+                                end
+                            end else
+                                _mem[_read_loc][BURST_WIDTH*cnt +: BURST_WIDTH] <= itf.mem_wdata;
+        end      
 end
 
-task reset;
-    if (pageno == -1)
-        return;
-    $display("Reset Memory");
-    pageno = -1;
-endtask
 
-task automatic memread(input logic [ADDRLEN-1:0] addr);
-    int signed _pageno;
-    int delay;
-    logic [ADDRLEN-1:0] _addr;
-    logic [31:0] _read_loc;
-    //$display("Read Memory");
-    _addr = addr & mask;
-    _read_loc = _addr / (CACHE_LINE_WIDTH / 8);
-    _pageno = addr / PAGE_SIZE;
-    delay = _pageno == pageno ? DELAY_PAGE_HIT : DELAY_MEM;
-    pageno = _pageno;
-    fork : f
-        begin : error_check
-            // This process simply runs some assertions at each
-            // new cycle, asserting error and ending the read if any assertion
-            // fails
-          if(itf.mcb.mem_address < 32'h11000000) begin
-            forever @(itf.mcb) begin
-                read_steady: assert(itf.mcb.mem_read) else begin
-                    $display(
-                        "Grading Error: PMEM Read Error: Read deasserted early"
-                    );
-                    itf.mcb.pm_error <= 1'b1;
-                    disable f;
-                    break;
-                end
-                no_write: assert(!itf.mcb.mem_write) else begin
-                    $display("Grading Error: PMEM Read Error: Write asserted");
-                    itf.mcb.pm_error <= 1'b1;
-                    disable f;
-                    break;
-                end
-                addr_read_steady: assert(itf.mcb.mem_address == addr) else begin
-                    $display("Grading Error: PMEM Read Error: Address changed");
-                    $display("Address %8x != addr %8x", itf.mcb.mem_address, addr);
-                    itf.mcb.pm_error <= 1'b1;
-                    disable f;
-                    break;
-                end
-            end
-          end
-        end
-        begin : memreader
-            // This process waits for 'duration' cycles and then does a burst
-            // write.  Resp goes high during the 4 cycles the data is ready.
-            //$display("%s[Memory] Read started addr=%x",0 ? $sformatf("%t: ", $time) : "", itf.mcb.mem_address);
-            repeat (delay) @(itf.mcb);
-            for (int i = 0; i < BURST_LEN; ++i) begin
-                itf.mcb.mem_rdata <= _mem[_read_loc][BURST_WIDTH*i +: BURST_WIDTH];
-                itf.mcb.mem_resp <= 1'b1;
-                @(itf.mcb);
-            end
-            //$display("%s[Memory] Read finished addr=%x",0 ? $sformatf("%t: ", $time) : "", itf.mcb.mem_address);
-            itf.mcb.mem_resp <= 1'b0;
-            disable f;
-        end
-    join
-endtask
 
-/*
- * Do a memory write 
-*/
-task automatic memwrite(input logic [31:0] addr);
-    // Calculate the memory latency and update that 'charged' memory data
-    int signed _pageno;
-    int delay;
-    logic [31:0] _addr;
-    logic [31:0] _read_loc;
-    _addr = addr & mask;
-    _read_loc = _addr / (CACHE_LINE_WIDTH / 8);
-    _pageno = addr / PAGE_SIZE;
-    delay = _pageno == pageno ? DELAY_PAGE_HIT : DELAY_MEM;
-    pageno = _pageno;
+always_comb begin
+            int signed _pageno;
+            int delay;
+ 
+            _addr = itf.mem_address & mask;
+            _read_loc = _addr / (CACHE_LINE_WIDTH / 8);
+            _pageno = itf.mem_address / PAGE_SIZE;
+            delay = DELAY_MEM; //_pageno == pageno ? DELAY_PAGE_HIT : DELAY_MEM;
+            pageno = _pageno;
+            
+            cnt_clr=0;
+            cnt_en=0;
+            mread=0;
+            mwrite=0;
+            mresp=0;
+                
+            case(state) 
+            IDLE: begin     cnt_clr=1;
+                            if(itf.mem_read || itf.mem_write) next_state = DELAY;
+                            else next_state = IDLE;
+                  end
+            DELAY: begin    cnt_en=1;
+                            next_state=DELAY;
+                            if(cnt == delay && itf.mem_read) begin cnt_clr=1; next_state=READ_BURST; end
+                            if(cnt == delay && itf.mem_write) begin cnt_clr=1; next_state=WRITE_BURST; end
+                   end
+            READ_BURST: begin
+                            cnt_en=1;
+                            mread=1;
+                            if(cnt==BURST_LEN) next_state=DONE;
+                            else begin next_state=READ_BURST;
+                                       mresp=1;
+                            end
+                        end
+            WRITE_BURST: begin
+                            cnt_en=1;
+                            mwrite=1;
+                            mresp=1;                      
+                            if(cnt==BURST_LEN) next_state=DONE;
+                            else next_state=WRITE_BURST;
+                         end
+            DONE: begin     cnt_clr=1;
+                            mresp = 1'b0;
+                            next_state=IDLE;
+                   end
+            default: begin  cnt_clr=0; cnt_en=0; next_state=IDLE;
+                     end
+            endcase;
+end             
 
-    fork : f
-        begin : error_check
-            // This process simply runs some assertions at each
-            // new cycle, asserting error and ending the read if any assertion
-            // fails
-            forever @(itf.mcb) begin
-                write_steady: assert(itf.mcb.mem_write) else begin
-                    $display("PMEM Write Error: Write deasserted early\n");
-                    itf.mcb.pm_error <= 1'b1;
-                    disable f;
-                    break;
-                end
-                no_read: assert(!itf.mcb.mem_read) else begin
-                    $display("PMEM Write Error: Read asserted\n");
-                    itf.mcb.pm_error <= 1'b1;
-                    disable f;
-                    break;
-                end
-                addr_write_steady: assert(itf.mcb.mem_address == addr) else begin
-                    $display("PMEM Write Error: Address changed\n");
-                    $display("Address %8x != addr %8x", itf.mcb.mem_address, addr);
-                    itf.mcb.pm_error <= 1'b1;
-                    disable f;
-                    break;
-                end
-            end
-        end
-        begin : memwrite
-            // This process waits for 'duration' cycles and then does a burst
-            // write.  Resp goes high the cycle before the first write is
-            // done, so the writer must be careful about this point
-            repeat (delay) @(itf.mcb);
-            //$display("%s[Memory] Write started addr=%x",0 ? $sformatf("%t: ", $time) : "", itf.mcb.mem_address);
-            for (int i = 0; i < BURST_LEN; ++i) begin
-                itf.mcb.mem_resp <= 1'b1;
-                @(itf.mcb);
-                if(USE_STROBE) begin
-                    //int k=0;
-                    for (int j = 0; j < 4; ++j) begin
-                        if (itf.mcb.mem_byte_enable[j])
-                            _mem[_read_loc][8*j +: 8] = itf.mcb.mem_wdata[8*j +: 8];    //k++
-                    end
-                end
-                else
-                    _mem[_read_loc][BURST_WIDTH*i +: BURST_WIDTH] = itf.mcb.mem_wdata;
-            end
-            itf.mcb.mem_resp <= 1'b0;
-            //$display("%s[Memory] Write finished addr=%x",0 ? $sformatf("%t: ", $time) : "", itf.mcb.mem_address);
-            disable f;
-        end
-    join
-endtask
 endmodule
 
 `endif
