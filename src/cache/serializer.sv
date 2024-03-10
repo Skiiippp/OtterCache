@@ -25,7 +25,6 @@ module serializer(
     input logic [255:0] data_in,
     input logic in_write_ready,
     input logic in_read_ready,
-    output logic resp,
     output logic [31:0] data_out
 );
 
@@ -47,7 +46,6 @@ always_comb begin
 end
     
 always_ff @(posedge clk) begin
-    resp <= 1'b0;
     if(reg_enable) begin    // either write or read is ready
         if (write_status) begin
             write_regs[7] <= data_in[255:224];
@@ -70,7 +68,6 @@ always_ff @(posedge clk) begin
             counter <= counter + 1;
             if(counter > 7) begin
                 counter <= 0;
-                resp <= 1'b1;
             end
         end
     end

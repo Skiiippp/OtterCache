@@ -25,7 +25,6 @@ module deserializer(
     input logic [31:0] data_in,
     input logic in_write_ready,
     input logic in_read_ready,
-    output logic resp,
     output logic [255:0] data_out
 );
 
@@ -47,7 +46,6 @@ always_comb begin
 end
     
 always_ff @(posedge clk) begin
-    resp <= 1'b0;
     if(reg_enable) begin    // either write or read is ready
         if (write_status) begin
             write_regs[7] <= data_in;
@@ -69,7 +67,6 @@ always_ff @(posedge clk) begin
             data_out[95:64] <= write_regs[2];
             data_out[64:32] <= write_regs[1];
             data_out[31:0] <= write_regs[0];
-            resp <= 1'b1; 
         end
     end
 end
