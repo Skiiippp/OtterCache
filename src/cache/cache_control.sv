@@ -93,6 +93,7 @@ module cache_control(
                 WR_CHECK: begin
                     if(hit && (is_valid[0] || is_valid[1])) begin    // valid hit
                         lru_load = 1'b1;
+                        cpu_mem_valid = 1'b1;
                         next_state <= IDLE;
                     end else begin
                         _wrrd_state = 1'b0; 
