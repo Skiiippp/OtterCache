@@ -138,9 +138,14 @@ module cache_control(
                     mem_read = 1'b1;
                     next_state = MEM_WAIT_RESP;
                 end
-                MEM_WAIT_RESP: begin     // should just wait 8 cycles
-                    if(!ca_resp) begin 
-                        next_state = MEM_WAIT_RESP;
+                MEM_WAIT_RESP: begin
+                    if(!ca_resp) next_state = MEM_WAIT_RESP;
+                    else next_state = MEM_WAIT_READ;
+                    mem_read = 1'b1;
+                end
+                MEM_WAIT_READ: begin 
+                    if(ca_resp) begin 
+                        next_state = MEM_WAIT_READ;
                         mem_read = 1'b1;
                     end else begin
                         if(!lru_out)    load_data_lines_a = 1'b1;
