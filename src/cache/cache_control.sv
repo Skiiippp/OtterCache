@@ -47,16 +47,14 @@ module cache_control(
         ERROR
     } mem_state_t;
 
-    mem_state_t state, next_state;
+    mem_state_t state = IDLE, next_state;
 
     logic _wrrd_state;  // 0 - write, 1 read
 
     // ** FSM **
-    initial state = IDLE;
     always_ff @(posedge clk) begin 
         state <= next_state;
         if(rst) begin 
-            state <= IDLE; 
             _wrrd_state = 0;
         end 
     end
@@ -87,71 +85,70 @@ module cache_control(
             case (state)
                 IDLE: begin
                     _wrrd_state = 1'b0; // Reset this val basically
-                    if(cpu_write)next_state = WR_CHECK;
-                    else if(cpu_read) next_state = RD_CHECK;
-                    else            next_state = IDLE;
+                    if(cpu_write)next_state <= WR_CHECK;
+                    else if(cpu_read) next_state <= RD_CHECK;
+                    else            next_state <= IDLE;
                 end
                 WR_CHECK: begin
                     if(hit && (is_valid[0] || is_valid[1])) begin    // valid hit
                         lru_load = 1'b1;
-                        next_state = IDLE;
+                        next_state <= IDLE;
                     end else begin
                         _wrrd_state = 1'b0; 
-                        next_state = WB_CHECK;
+                        next_state <= WB_CHECK;
                     end 
                 end
                 RD_CHECK: begin 
                     if(hit && (is_valid[0] || is_valid[1])) begin  // valid hit
                         lru_load = 1'b1;
                         cpu_mem_valid = 1'b1;
-                        next_state = IDLE;
+                        next_state <= IDLE;
                     end else begin
                         _wrrd_state = 1'b1; 
-                        next_state = WB_CHECK;
+                        next_state <= WB_CHECK;
                     end
                 end
                 WB_CHECK: begin // Need to get data from cache to main mem
                     if(!is_dirty[lru_out] || !is_valid[lru_out]) begin  // lru_out = 1'b0 - Way A is LRU
-                        if(!_wrrd_state)    next_state = FETCH_CPU;
-                        else                next_state = FETCH_MMEM;
+                        next_state <= FETCH_MMEM;
                     end else begin          // eq. VALID & DIRTY - begin writing to mem
                         mem_write = 1'b1;
-                        next_state = WB_WAIT_RESP;
+                        next_state <= WB_WAIT_RESP;
                     end
                 end
                 WB_WAIT_RESP: begin 
-                    if(!ca_resp)    next_state = WB_WAIT_RESP;   // Again, ca_resp not in block diagram but should be added
+                    if(!ca_resp)    next_state <= WB_WAIT_RESP;   // Again, ca_resp not in block diagram but should be added
                     else begin            
-                        next_state = FETCH_MMEM;
+                        next_state <= FETCH_MMEM;
                     end
                     mem_write = 1'b1;
                 end
                 WB_WAIT_WRITE: begin 
                     if(ca_resp) begin
-                        next_state = WB_WAIT_WRITE; 
+                        next_state <= WB_WAIT_WRITE; 
                         mem_write = 1'b1;
                     end else begin            
-                        next_state = FETCH_MMEM;
+                        next_state <= FETCH_MMEM;
                     end
                 end
                 FETCH_MMEM: begin   // Writing to cache from main mem
                     mem_read = 1'b1;
-                    next_state = MEM_WAIT_RESP;
+                    next_state <= MEM_WAIT_RESP;
                 end
                 MEM_WAIT_RESP: begin
-                    if(!ca_resp) next_state = MEM_WAIT_RESP;
-                    else next_state = MEM_WAIT_READ;
+                    if(!ca_resp) next_state <= MEM_WAIT_RESP;
+                    else next_state <= MEM_WAIT_READ;
                     mem_read = 1'b1;
                 end
                 MEM_WAIT_READ: begin 
                     if(ca_resp) begin 
-                        next_state = MEM_WAIT_READ;
+                        next_state <= MEM_WAIT_READ;
                         mem_read = 1'b1;
                     end else begin
                         if(!lru_out)    load_data_lines_a = 1'b1;
                         else            load_data_lines_b = 1'b1;
                         if(!_wrrd_state) begin 
-                            next_state = FETCH_CPU;
+                            next_state <= FETCH_CPU;
                         end else begin 
                             data_in_select = 1'b1; // Mem data
                             set_dirty[lru_out] = 1'b0;
@@ -165,7 +162,7 @@ module cache_control(
                                 load_data_b = 1'b1;
                                 load_tag_b = 1'b1;
                             end
-                            next_state = RD_CHECK;
+                            next_state <= RD_CHECK;
                         end
                     end
                 end
@@ -184,14 +181,14 @@ module cache_control(
                         load_tag_b = 1'b1;
                         load_data_bytes_b = 1'b1;
                     end
-                    next_state = WR_CHECK;  // Will hit/miss logic still work?
+                    next_state <= WR_CHECK;  // Will hit/miss logic still work?
                 end
                 ERROR: begin 
-                    next_state = IDLE;
+                    next_state <= IDLE;
                     error = 1'b1;
                 end
                 default: begin 
-                    next_state = ERROR;
+                    next_state <= ERROR;
                 end
             endcase
         end
