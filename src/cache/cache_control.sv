@@ -38,10 +38,12 @@ module cache_control(
         WR_CHECK,
         RD_CHECK,
         WB_CHECK,
-        WB_WAIT,
+        WB_WAIT_RESP,
+        WB_WAIT_WRITE,
         FETCH_CPU,
         FETCH_MMEM,
-        F_M_WAIT,
+        MEM_WAIT_RESP,
+        MEM_WAIT_READ,
         ERROR
     } mem_state_t;
 
@@ -113,25 +115,32 @@ module cache_control(
                         else                next_state = FETCH_MMEM;
                     end else begin          // eq. VALID & DIRTY - begin writing to mem
                         mem_write = 1'b1;
-                        next_state = WB_WAIT;
+                        next_state = WB_WAIT_RESP;
                     end
                 end
-                WB_WAIT: begin 
-                    if(!ca_resp)    next_state = WB_WAIT;   // Again, ca_resp not in block diagram but should be added
-                    else begin       
-                        // next_state = FETCH_MMEM;     
-                        next_state = F_M_WAIT;
+                WB_WAIT_RESP: begin 
+                    if(!ca_resp)    next_state = WB_WAIT_RESP;   // Again, ca_resp not in block diagram but should be added
+                    else begin            
+                        next_state = FETCH_MMEM;
+                    end
+                    mem_write = 1'b1;
+                end
+                WB_WAIT_WRITE: begin 
+                    if(ca_resp) begin
+                        next_state = WB_WAIT_WRITE; 
+                        mem_write = 1'b1;
+                    end else begin            
+                        next_state = FETCH_MMEM;
                     end
                 end
-                /*
                 FETCH_MMEM: begin   // Writing to cache from main mem
                     mem_read = 1'b1;
-                    next_state = F_M_WAIT;
-                end */
-                F_M_WAIT: begin     
-                    mem_read = 1'b1;
-                    if(!pmem_itf.mem_resp) begin 
-                        next_state = F_M_WAIT;
+                    next_state = MEM_WAIT_RESP;
+                end
+                MEM_WAIT_RESP: begin     // should just wait 8 cycles
+                    if(!ca_resp) begin 
+                        next_state = MEM_WAIT_RESP;
+                        mem_read = 1'b1;
                     end else begin
                         if(!lru_out)    load_data_lines_a = 1'b1;
                         else            load_data_lines_b = 1'b1;
@@ -182,7 +191,6 @@ module cache_control(
         end
     end
 
-end
 
 
 
