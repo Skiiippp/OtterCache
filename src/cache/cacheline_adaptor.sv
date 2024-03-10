@@ -37,6 +37,7 @@ module cacheline_adaptor(
     assign pmem_itf.mem_address = ca_itf.mem_address;
     assign pmem_itf.rst = ca_itf.rst;
     assign pmem_itf.mem_byte_enable = ca_itf.mem_byte_enable;
+    assign pmem_itf.mem_read = ca_itf.mem_read;
 
     serializer ser(ca_itf.clk, ca_itf.mem_wdata, ca_itf.mem_write, ca_we_buffer, pmem_itf.mem_wdata);
     deserializer des(ca_itf.clk, pmem_itf.mem_rdata, pmem_itf.mem_resp, ca_itf.mem_read, ca_itf.mem_rdata);
