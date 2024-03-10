@@ -133,7 +133,7 @@ module cache_control(
                         end else begin 
                             fmw_cnt <= 0;
                             data_in_select <= 1'b1; // Mem data
-                            set_dirty[lru_out] <= 1'b1;
+                            set_dirty[lru_out] <= 1'b0;
                             write_dirty[lru_out] <= 1'b1;
                             set_valid[lru_out] <= 1'b1;
                             write_valid[lru_out] <= 1'b1;

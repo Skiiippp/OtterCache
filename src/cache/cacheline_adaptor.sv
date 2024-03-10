@@ -34,6 +34,8 @@ module cacheline_adaptor(
     logic [255:0] par_d_in, par_d_out;
     logic [31:0] ser_d_in, ser_d_out;
 
+    assign clk = ca_itf.clk;
+
     assign ca_itf.mem_rdata = par_d_out;
     assign pmem_itf.mem_wdata = ser_d_out;
 

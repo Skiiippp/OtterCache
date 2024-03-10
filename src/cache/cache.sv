@@ -16,7 +16,7 @@ module cache #(
 
 logic clk, rst, cpu_read, cpu_write, lru_out, ca_resp, hit;
 logic [1:0] is_dirty, is_valid;
-logic cpu_mem_valid, load_data_a, load_data_b, lru_load, load_tag_a, load_tag_b, mem_read, mem_write, data_in_select, error;
+logic cpu_mem_valid, load_data_a, load_data_b, lru_load, load_tag_a, load_tag_b, data_in_select, error;
 logic [1:0] set_dirty, write_dirty, set_valid, write_valid;
 
 assign clk = cpu_itf.clk;
