@@ -48,14 +48,12 @@ module cache_control(
     mem_state_t state, next_state;
 
     logic _wrrd_state;  // 0 - write, 1 read
-    int fmw_cnt = 0;
 
     // ** FSM **
     initial state = IDLE;
     always_ff @(posedge clk) begin 
         state <= next_state;
         if(rst) begin state <= IDLE; 
-            fmw_cnt = 0;
             _wrrd_state = 0;
         end 
     end
@@ -120,17 +118,19 @@ module cache_control(
                 end
                 WB_WAIT: begin 
                     if(!ca_resp)    next_state = WB_WAIT;   // Again, ca_resp not in block diagram but should be added
-                    else begin            
-                        next_state = FETCH_MMEM;
+                    else begin       
+                        // next_state = FETCH_MMEM;     
+                        next_state = F_M_WAIT;
                     end
                 end
+                /*
                 FETCH_MMEM: begin   // Writing to cache from main mem
                     mem_read = 1'b1;
                     next_state = F_M_WAIT;
-                end
-                F_M_WAIT: begin     // should just wait 8 cycles
-                    if(fmw_cnt < 8) begin 
-                        fmw_cnt = fmw_cnt + 1;
+                end */
+                F_M_WAIT: begin     
+                    mem_read = 1'b1;
+                    if(!pmem_itf.mem_resp) begin 
                         next_state = F_M_WAIT;
                     end else begin
                         if(!lru_out)    load_data_lines_a = 1'b1;
@@ -138,7 +138,6 @@ module cache_control(
                         if(!_wrrd_state) begin 
                             next_state = FETCH_CPU;
                         end else begin 
-                            fmw_cnt = 0;
                             data_in_select = 1'b1; // Mem data
                             set_dirty[lru_out] = 1'b0;
                             write_dirty[lru_out] = 1'b1;
