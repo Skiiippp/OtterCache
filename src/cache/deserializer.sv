@@ -65,7 +65,7 @@ always_ff @(posedge clk) begin
             data_out[159:128] <= write_regs[4];
             data_out[127:96] <= write_regs[3];
             data_out[95:64] <= write_regs[2];
-            data_out[64:32] <= write_regs[1];
+            data_out[63:32] <= write_regs[1];
             data_out[31:0] <= write_regs[0];
         end
     end
