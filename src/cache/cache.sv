@@ -25,7 +25,7 @@ assign rst = cpu_itf.rst;
 assign ca_itf.clk = cpu_itf.clk;
 assign ca_itf.rst = cpu_itf.rst;
 assign ca_itf.mem_byte_enable = 4'b1111;
-assign ca_itf.mem_address = cpu_itf.mem_address;
+assign ca_itf.mem_address = cpu_itf.mem_address; //temp
 
 cache_control control(
     .clk(clk),

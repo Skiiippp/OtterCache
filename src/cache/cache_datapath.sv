@@ -117,7 +117,7 @@ end
 data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayA (
     .clk(clk),
     .rst(rst),
-    .read(dataHit_A),
+    .read(1'b1),
     .write_en(dataWriteEn_A),
     .rindex(memIndex),
     .windex(memIndex),
@@ -127,7 +127,7 @@ data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayA (
 data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayB (
     .clk(clk),
     .rst(rst),
-    .read(dataHit_B),
+    .read(1'b1),
     .write_en(dataWriteEn_B),
     .rindex(memIndex),
     .windex(memIndex),
@@ -138,7 +138,6 @@ data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayB (
 //data output mux
 logic [s_line-1:0] dataMuxInput;
 logic [s_mask-1:0] preMaskedDataMux;
-logic [s_mask-1:0] dataMuxOutput;
 always_comb begin
     dataMuxInput = (dataHit_A == 1'b1) ? dataArrayOut_A : dataArrayOut_B;
     preMaskedDataMux = dataMuxInput >> (s_mask*memOffset); //shift by 32*offset, mask for the first 32 bits

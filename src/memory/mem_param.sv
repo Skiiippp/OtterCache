@@ -19,7 +19,7 @@ localparam int ADDRLEN = 32;
 localparam int CARELEN = ADDRLEN - $clog2(CACHE_LINE_WIDTH / 8);
 localparam logic [ADDRLEN-1:0] mask = {{(CARELEN){1'b1}},
                                        {(ADDRLEN-CARELEN){1'b0}}};
-localparam ACTUAL_WIDTH=14;  //32KB     16K x 32
+localparam ACTUAL_WIDTH=3000000;  //32KB     16K x 32
 
 int signed pageno=-1;
 

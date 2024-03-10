@@ -116,9 +116,9 @@ module cache_testbench();
 //            write_dcache('h01234, 'h02 + i * 4, 'h1, i == 0 ? 'b1111 : 'b1100, 'haabbccdd);
 //            if (i == 0) ##50;
     
-//            $display("%s==== Read, hit, clean block (block still clean) ================================================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
-//            read_dcache('h01234, 'h01 + i * 4, 'h2);
-//            if (i == 0) ##50;
+            $display("%s==== Read, hit, clean block (block still clean) ================================================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
+            read_dcache('h01234, 'h01 + i * 4, 'h2);
+            if (i == 0) ##50;
     
 //            $display("%s==== Read, hit, dirty block (block still dirty) ================================================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
 //            read_dcache('h01234, 'h02 + i * 4, 'h3);
