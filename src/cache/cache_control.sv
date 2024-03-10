@@ -44,6 +44,7 @@ module cache_control(
         FETCH_MMEM,
         MEM_WAIT_RESP,
         MEM_WAIT_READ,
+        READ_WAIT,
         ERROR
     } mem_state_t;
 
@@ -162,9 +163,15 @@ module cache_control(
                                 load_data_b = 1'b1;
                                 load_tag_b = 1'b1;
                             end
-                            next_state <= RD_CHECK;
+                            next_state <= READ_WAIT;
                         end
                     end
+                end
+                READ_WAIT: begin
+                    if(!lru_out)    load_data_lines_a = 1'b1;
+                    else            load_data_lines_b = 1'b1;
+                    data_in_select = 1'b1;
+                    next_state <= RD_CHECK;
                 end
                 FETCH_CPU: begin    // Writing to cache from CPU
                     data_in_select = 1'b0; // CPU data
