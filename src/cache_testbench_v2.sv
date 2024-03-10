@@ -99,18 +99,18 @@ module cache_testbench();
         read_dcache('h00000, 'h00, 'h0);
         ##50;
 
-//        // run tests first with delays, then without        
-//        for (int i = 0; i < 2; i++) begin
+        // run tests first with delays, then without        
+        for (int i = 0; i < 1; i++) begin
 
-//            if (i == 0) begin
-//                $display("%s================ Testing various cases, with delays between ====================================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
-//            end else begin
-//                $display("%s================ Testing various cases, with no delays between, and partial-word writes ========================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
-//            end
+            if (i == 0) begin
+                $display("%s================ Testing various cases, with delays between ====================================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
+            end else begin
+                $display("%s================ Testing various cases, with no delays between, and partial-word writes ========================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
+            end
     
-//            $display("%s==== Read, cold-start miss (allocate, block now valid and clean) ===============================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
-//            read_dcache('h01234, 'h01 + i * 4, 'h0);
-//            if (i == 0) ##50;
+            $display("%s==== Read, cold-start miss (allocate, block now valid and clean) ===============================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
+            read_dcache('h01234, 'h01 + i * 4, 'h0);
+            if (i == 0) ##50;
             
 //            $display("%s==== Write, cold-start miss (allocate then update, block now valid and dirty) ==================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
 //            write_dcache('h01234, 'h02 + i * 4, 'h1, i == 0 ? 'b1111 : 'b1100, 'haabbccdd);
@@ -156,7 +156,7 @@ module cache_testbench();
 //            read_dcache('h08765, 'h02 + i * 4, 'h3);
 //            if (i == 0) ##50;
 
-//        end
+        end
 
         $display("%s================ DONE ==========================================================================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
         ##50;
