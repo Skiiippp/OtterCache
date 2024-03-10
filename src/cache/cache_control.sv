@@ -55,7 +55,8 @@ module cache_control(
     initial state = IDLE;
     always_ff @(posedge clk) begin 
         state <= next_state;
-        if(rst) begin state <= IDLE; 
+        if(rst) begin 
+            state <= IDLE; 
             _wrrd_state = 0;
         end 
     end
