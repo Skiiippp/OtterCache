@@ -141,9 +141,9 @@ module cache_control(
                     mem_read = 1'b1;
                 end
                 MEM_WAIT_READ: begin 
+                    mem_read = 1'b1;
                     if(ca_resp) begin 
                         next_state <= MEM_WAIT_READ;
-                        mem_read = 1'b1;
                     end else begin
                         if(!lru_out)    load_data_lines_a = 1'b1;
                         else            load_data_lines_b = 1'b1;
