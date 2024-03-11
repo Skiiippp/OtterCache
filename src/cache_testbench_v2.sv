@@ -132,29 +132,29 @@ module cache_testbench();
             read_dcache('h04321, 'h02 + i * 4, 'h1);
             if (i == 0) ##50;
     
-//            $display("%s==== Write, hit, clean block (update, block now dirty) =========================================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
-//            write_dcache('h04321, 'h01 + i * 4, 'h2, i == 0 ? 'b1111 : 'b0011, 'hbbccddee);
-//            if (i == 0) ##50;
+            $display("%s==== Write, hit, clean block (update, block now dirty) =========================================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
+            write_dcache('h04321, 'h01 + i * 4, 'h2, i == 0 ? 'b1111 : 'b0011, 'hbbccddee);
+            if (i == 0) ##50;
     
-//            $display("%s==== Write, hit, dirty block (update, block still dirty) =======================================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
-//            write_dcache('h04321, 'h01 + i * 4, 'h3, i == 0 ? 'b1111 : 'b1000, 'hccddeeff);
-//            if (i == 0) ##50;
+            $display("%s==== Write, hit, dirty block (update, block still dirty) =======================================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
+            write_dcache('h04321, 'h01 + i * 4, 'h3, i == 0 ? 'b1111 : 'b1000, 'hccddeeff);
+            if (i == 0) ##50;
     
-//            $display("%s==== Write, conflict miss, clean block (allocate then update, block now dirty) =================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
-//            write_dcache('h05678, 'h02 + i * 4, 'h0, i == 0 ? 'b1111 : 'b0100, 'hddeeffaa);
-//            if (i == 0) ##50;
+            $display("%s==== Write, conflict miss, clean block (allocate then update, block now dirty) =================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
+            write_dcache('h05678, 'h02 + i * 4, 'h0, i == 0 ? 'b1111 : 'b0100, 'hddeeffaa);
+            if (i == 0) ##50;
     
-//            $display("%s==== Write, conflict miss, dirty block (write back then allocate then update, block still dirty) ===============", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
-//            write_dcache('h05678, 'h01 + i * 4, 'h1, i == 0 ? 'b1111 : 'b0010, 'heeffaabb);
-//            if (i == 0) ##50;
+            $display("%s==== Write, conflict miss, dirty block (write back then allocate then update, block still dirty) ===============", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
+            write_dcache('h05678, 'h01 + i * 4, 'h1, i == 0 ? 'b1111 : 'b0010, 'heeffaabb);
+            if (i == 0) ##50;
     
-//            $display("%s==== (verifying state) Read, conflict miss, dirty block (write back then allocate, block now clean) ============", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
-//            read_dcache('h08765, 'h01 + i * 4, 'h2);
-//            if (i == 0) ##50;
+            $display("%s==== (verifying state) Read, conflict miss, dirty block (write back then allocate, block now clean) ============", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
+            read_dcache('h08765, 'h01 + i * 4, 'h2);
+            if (i == 0) ##50;
     
-//            $display("%s==== (verifying state) Read, conflict miss, dirty block (write back then allocate, block now clean) ============", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
-//            read_dcache('h08765, 'h02 + i * 4, 'h3);
-//            if (i == 0) ##50;
+            $display("%s==== (verifying state) Read, conflict miss, dirty block (write back then allocate, block now clean) ============", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
+            read_dcache('h08765, 'h02 + i * 4, 'h3);
+            if (i == 0) ##50;
 
         end
 

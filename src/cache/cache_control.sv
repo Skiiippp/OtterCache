@@ -115,13 +115,13 @@ module cache_control(
                         next_state <= FETCH_MMEM;
                     end else begin          // eq. VALID & DIRTY - begin writing to mem
                         mem_write = 1'b1;
-                        next_state <= WB_WAIT_RESP;
+                        next_state <= WB_WAIT_WRITE;
                     end
                 end
                 WB_WAIT_RESP: begin 
                     if(!ca_resp)    next_state <= WB_WAIT_RESP;   // Again, ca_resp not in block diagram but should be added
                     else begin            
-                        next_state <= FETCH_MMEM;
+                        next_state <= WB_WAIT_WRITE;
                     end
                     mem_write = 1'b1;
                 end
