@@ -36,8 +36,16 @@ module memory_wrapper
     assign mem_valid1 = itf.mem_resp; //(MEM_READ1) ? itf.mem_resp : 0;
     assign mem_valid2 = itf.mem_resp; //(MEM_READ2) ? itf.mem_resp : 0;
     
-    assign itf.mem_address = (MEM_READ1) ? MEM_ADDR1 : 
-                             (MEM_READ2 | MEM_READ2_r | MEM_WRITE2) ? MEM_ADDR2 : 32'b0;
+    always_comb begin
+        if(MEM_READ1)  itf.mem_address = MEM_ADDR1;
+        else begin 
+            if(MEM_READ2 | MEM_READ2_r | MEM_WRITE2) itf.mem_address = MEM_ADDR2;
+            else                                        itf.mem_address = 32'b0;
+        end
+    end
+    
+    /*assign itf.mem_address = (MEM_READ1) ? MEM_ADDR1 : 
+                             (MEM_READ2 | MEM_READ2_r | MEM_WRITE2) ? MEM_ADDR2 : 32'b0;*/
     assign itf.mem_read = MEM_READ1 | MEM_READ2;
     assign itf.mem_write = MEM_WRITE2;
     assign itf.mem_wdata = MEM_DIN2;

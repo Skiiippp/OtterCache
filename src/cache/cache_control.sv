@@ -35,6 +35,7 @@ module cache_control(
     // ** DEFS **
     typedef enum {
         IDLE,
+        IDLE_ST,
         WR_CHECK,
         RD_CHECK,
         WB_CHECK,
@@ -51,7 +52,7 @@ module cache_control(
     mem_state_t state = IDLE, next_state;
 
     logic _wrrd_state;  // 0 - write, 1 read
-
+    
     // ** FSM **
     always_ff @(posedge clk) begin 
         state <= next_state;
@@ -84,6 +85,7 @@ module cache_control(
         else begin
             error = 1'b0;
             case (state)
+                //IDLE: next_state = IDLE_ST;
                 IDLE: begin
                     _wrrd_state = 1'b0; // Reset this val basically
                     if(cpu_write)next_state <= WR_CHECK;
@@ -115,7 +117,7 @@ module cache_control(
                         next_state <= FETCH_MMEM;
                     end else begin          // eq. VALID & DIRTY - begin writing to mem
                         mem_write = 1'b1;
-                        next_state <= WB_WAIT_WRITE;
+                        next_state <= WB_WAIT_RESP;
                     end
                 end
                 WB_WAIT_RESP: begin 

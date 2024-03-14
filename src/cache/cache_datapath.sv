@@ -135,14 +135,19 @@ data_array #(.s_offset(s_offset), .s_index(s_index)) DataArrayB (
     .dataout(dataArrayOut_B)
   );
 
-//data output mux
+//data output mux - should only be for output
 logic [s_line-1:0] dataMuxInput;
 always_comb begin
     dataMuxInput = (dataHit_A == 1'b1) ? dataArrayOut_A : dataArrayOut_B;
-    assign ca_dataOut = dataMuxInput;
-    assign cpu_dataOut = dataMuxInput[8*{cpu_memAddr[4:2], 2'b00} +: 32];
+    //ca_dataOut = dataMuxInput;
+    cpu_dataOut = dataMuxInput[8*{cpu_memAddr[4:2], 2'b00} +: 32];
 end
 //rv = line[8*{addr[4:2], 2'b00} +: 32];
+
+// mux for ca output 
+always_comb begin  
+    ca_dataOut = (!LRUDataIn) ? dataArrayOut_A : dataArrayOut_B;
+end
 
 array #(.s_index(s_index), .width(1)) validArray_A (
     .clk(clk),
