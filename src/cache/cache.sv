@@ -25,7 +25,10 @@ assign rst = cpu_itf.rst;
 assign ca_itf.clk = cpu_itf.clk;
 assign ca_itf.rst = cpu_itf.rst;
 assign ca_itf.mem_byte_enable = 4'b1111;
-assign ca_itf.mem_address = cpu_itf.mem_address; //temp
+//assign ca_itf.mem_address = cpu_itf.mem_address; //temp - MUST BE CHANGED
+
+logic ca_mem_write;
+assign ca_itf.mem_write = ca_mem_write;
 
 cache_control control(
     .clk(clk),
@@ -48,7 +51,7 @@ cache_control control(
     .load_tag_a(load_tag_a),
     .load_tag_b(load_tag_b),
     .mem_read(ca_itf.mem_read),
-    .mem_write(ca_itf.mem_write),
+    .mem_write(ca_mem_write),
     .data_in_select(data_in_select),
     .error(error),
     .set_dirty(set_dirty),
@@ -66,6 +69,8 @@ cache_datapath #(.s_offset(s_offset), .s_index(s_index)) datapath(
     .cpu_dataOut(cpu_itf.mem_rdata),
     .ca_dataIn(ca_itf.mem_rdata),
     .ca_dataOut(ca_itf.mem_wdata),
+    .ca_write(ca_mem_write),
+    .ca_memAddr(ca_itf.mem_address),
     .load_dataBytes_A(load_data_bytes_a),
     .load_dataBytes_B(load_data_bytes_b),
     .load_dataLine_A(load_data_lines_a),

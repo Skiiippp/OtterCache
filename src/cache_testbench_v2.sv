@@ -132,6 +132,7 @@ module cache_testbench();
             read_dcache('h04321, 'h02 + i * 4, 'h1);
             if (i == 0) ##50;
     
+            
             $display("%s==== Write, hit, clean block (update, block now dirty) =========================================================", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
             write_dcache('h04321, 'h01 + i * 4, 'h2, i == 0 ? 'b1111 : 'b0011, 'hbbccddee);
             if (i == 0) ##50;
@@ -155,6 +156,7 @@ module cache_testbench();
             $display("%s==== (verifying state) Read, conflict miss, dirty block (write back then allocate, block now clean) ============", DISPLAY_TIME ? $sformatf("%t: ", $time) : "");
             read_dcache('h08765, 'h02 + i * 4, 'h3);
             if (i == 0) ##50;
+            
 
         end
 

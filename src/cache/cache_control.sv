@@ -115,7 +115,7 @@ module cache_control(
                         next_state <= FETCH_MMEM;
                     end else begin          // eq. VALID & DIRTY - begin writing to mem
                         mem_write = 1'b1;
-                        next_state <= WB_WAIT_WRITE;
+                        next_state <= WB_WAIT_RESP;
                     end
                 end
                 WB_WAIT_RESP: begin 
