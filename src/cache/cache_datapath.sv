@@ -21,6 +21,8 @@ module cache_datapath #(
     //cacheline adapter io
     input logic [s_line-1:0] ca_dataIn,
     output logic [s_line-1:0] ca_dataOut,
+    input logic ca_write,
+    output logic [31:0] ca_memAddr,
     
     //fsm io
     input logic load_dataBytes_A, //either select bytes or the entire cacheline can be written to
@@ -69,6 +71,15 @@ logic dirtyArrayOut_A, dirtyArrayOut_B;
 
 ///////////////////////////// comb/datapaths /////////////////////////////////
 
+// Addr Mux
+always_comb begin
+    if(!ca_write)   ca_memAddr = cpu_memAddr;
+    else begin
+        if(!LRUOut) ca_memAddr = { tagArrayOut_B, memIndex, 5'b0 };
+        else        ca_memAddr = { tagArrayOut_A, memIndex, 5'b0 };
+    end
+end
+
 array #(.s_index(s_index), .width(24)) TagArray_A (
     .clk(clk),
     .rst(rst),
@@ -83,7 +94,7 @@ array #(.s_index(s_index), .width(24)) TagArray_B (
     .clk(clk),
     .rst(rst),
     .read(1'b1),
-    .load(load_tag_A),
+    .load(load_tag_B),
     .rindex(memIndex),
     .windex(memIndex),
     .datain(memTag),
